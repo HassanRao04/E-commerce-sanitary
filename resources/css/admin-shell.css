@@ -1,0 +1,41 @@
+/* Admin shell — sidebar width/transition from CSS variables in layouts/admin.blade.php */
+
+.admin-sidebar {
+    width: var(--admin-sidebar-width);
+    transition: transform var(--admin-sidebar-transition);
+    transform: translateX(-100%);
+}
+
+.admin-main-shell {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    padding-left: 0;
+    transition: padding-left var(--admin-sidebar-transition);
+}
+
+/* Desktop: sidebar open unless html.admin-sidebar-collapsed */
+@media (min-width: 1024px) {
+    html:not(.admin-sidebar-collapsed) .admin-sidebar {
+        transform: translateX(0);
+    }
+
+    html:not(.admin-sidebar-collapsed) .admin-main-shell {
+        padding-left: var(--admin-sidebar-width);
+    }
+
+    html.admin-sidebar-collapsed .admin-sidebar {
+        transform: translateX(-100%);
+    }
+
+    html.admin-sidebar-collapsed .admin-main-shell {
+        padding-left: 0;
+    }
+}
+
+/* Mobile: drawer open only when html.admin-mobile-open */
+@media (max-width: 1023px) {
+    html.admin-mobile-open .admin-sidebar {
+        transform: translateX(0);
+    }
+}

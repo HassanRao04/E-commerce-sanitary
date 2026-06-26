@@ -1,11 +1,20 @@
-@import 'tailwindcss';
+@import './design-system/tokens.css';
+@import './design-system/components.css';
+@import './storefront/hero.css';
+@import './storefront/product-card.css';
+@import './storefront/product-carousel.css';
+@import './storefront/trust-sections.css';
+@import './storefront/testimonials.css';
+@import './storefront/newsletter.css';
+@import './storefront/footer.css';
+@import './storefront/shop.css';
+@import './storefront/product-page.css';
+@import './storefront/cart-checkout.css';
+@import './storefront/responsive.css';
+@import './storefront/animations.css';
+@import './storefront/premium-polish.css';
+@import './admin-shell.css';
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-@source '../**/*.blade.php';
-@source '../**/*.js';
-
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

@@ -1,0 +1,93 @@
+/**
+ * Design System — CSS Custom Properties
+ * Premium commerce aesthetic: Apple clarity, Nike confidence, Shopify structure, Gymshark energy.
+ */
+
+:root {
+    /* ── Color tokens ─────────────────────────────────────────────── */
+    --ds-color-ink: #0B0B0F;
+    --ds-color-ink-muted: #636366;
+    --ds-color-ink-subtle: #86868B;
+    --ds-color-surface: #FFFFFF;
+    --ds-color-surface-subtle: #FAFAFA;
+    --ds-color-surface-muted: #F5F5F7;
+    --ds-color-border: #E8E8ED;
+    --ds-color-border-strong: #D1D1D6;
+    --ds-color-accent: #0071E3;
+    --ds-color-accent-hover: #0077ED;
+    --ds-color-accent-soft: #E8F2FF;
+    --ds-color-success: #0A7A44;
+    --ds-color-success-soft: #ECFDF3;
+    --ds-color-warning: #B45309;
+    --ds-color-warning-soft: #FFFBEB;
+    --ds-color-danger: #DC2626;
+    --ds-color-danger-soft: #FEF2F2;
+    --ds-color-info: #0369A1;
+    --ds-color-info-soft: #F0F9FF;
+
+    /* ── Typography ───────────────────────────────────────────────── */
+    --ds-font-sans: 'Instrument Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ds-font-display: 'Instrument Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --ds-font-mono: 'SF Mono', 'JetBrains Mono', ui-monospace, monospace;
+
+    --ds-text-xs: 0.75rem;
+    --ds-text-sm: 0.875rem;
+    --ds-text-base: 1rem;
+    --ds-text-lg: 1.125rem;
+    --ds-text-xl: 1.25rem;
+    --ds-text-2xl: 1.5rem;
+    --ds-text-3xl: 1.875rem;
+    --ds-text-4xl: 2.25rem;
+    --ds-text-5xl: 3rem;
+
+    --ds-leading-tight: 1.15;
+    --ds-leading-snug: 1.375;
+    --ds-leading-normal: 1.625;
+    --ds-tracking-tight: -0.02em;
+    --ds-tracking-normal: 0;
+    --ds-tracking-wide: 0.04em;
+
+    /* ── Spacing (4px grid) ───────────────────────────────────────── */
+    --ds-space-1: 0.25rem;
+    --ds-space-2: 0.5rem;
+    --ds-space-3: 0.75rem;
+    --ds-space-4: 1rem;
+    --ds-space-5: 1.25rem;
+    --ds-space-6: 1.5rem;
+    --ds-space-8: 2rem;
+    --ds-space-10: 2.5rem;
+    --ds-space-12: 3rem;
+    --ds-space-16: 4rem;
+    --ds-space-20: 5rem;
+    --ds-space-24: 6rem;
+
+    /* ── Radius ───────────────────────────────────────────────────── */
+    --ds-radius-sm: 0.5rem;
+    --ds-radius-md: 0.75rem;
+    --ds-radius-lg: 1rem;
+    --ds-radius-xl: 1.25rem;
+    --ds-radius-pill: 9999px;
+
+    /* ── Elevation ────────────────────────────────────────────────── */
+    --ds-shadow-xs: 0 1px 2px 0 rgb(11 11 15 / 0.04);
+    --ds-shadow-sm: 0 1px 3px 0 rgb(11 11 15 / 0.06), 0 1px 2px -1px rgb(11 11 15 / 0.06);
+    --ds-shadow-md: 0 4px 12px -2px rgb(11 11 15 / 0.08), 0 2px 6px -2px rgb(11 11 15 / 0.05);
+    --ds-shadow-lg: 0 12px 32px -8px rgb(11 11 15 / 0.12), 0 4px 12px -4px rgb(11 11 15 / 0.06);
+
+    /* ── Motion ───────────────────────────────────────────────────── */
+    --ds-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ds-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ds-duration-fast: 150ms;
+    --ds-duration-base: 250ms;
+    --ds-duration-slow: 350ms;
+
+    /* ── Premium surfaces ───────────────────────────────────────── */
+    --ds-glass-bg: rgb(255 255 255 / 0.82);
+    --ds-glass-border: rgb(232 232 237 / 0.85);
+    --ds-selection: rgb(0 113 227 / 0.18);
+
+    /* ── Layout ───────────────────────────────────────────────────── */
+    --ds-container-narrow: 42rem;
+    --ds-container-content: 72rem;
+    --ds-container-wide: 90rem;
+}

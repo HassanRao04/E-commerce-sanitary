@@ -1,0 +1,148 @@
+/**
+ * Premium storefront polish — Apple clarity, Nike confidence, Shopify structure, Gymshark energy.
+ */
+
+/* ── Section rhythm ─────────────────────────────────────────────── */
+.ds-section-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    max-width: 42rem;
+}
+
+.ds-section-header--center {
+    align-items: center;
+    text-align: center;
+    margin-inline: auto;
+}
+
+.ds-section-header--compact {
+    gap: 0.5rem;
+}
+
+.ds-section-eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(134 134 139);
+}
+
+.ds-section-header__title {
+    font-size: clamp(1.625rem, 3.5vw, 2rem);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.12;
+    color: rgb(11 11 15);
+}
+
+.ds-section-header__subtitle {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: rgb(110 110 115);
+    max-width: 38rem;
+}
+
+.ds-section-header--center .ds-section-header__subtitle {
+    margin-inline: auto;
+}
+
+/* ── Page flash messages (Shopify-style toast bar) ────────────── */
+.storefront-flash {
+    position: sticky;
+    top: 0;
+    z-index: 45;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-bottom: 1px solid transparent;
+}
+
+.storefront-flash--success {
+    background: rgb(236 253 245);
+    color: rgb(6 95 70);
+    border-color: rgb(167 243 208);
+}
+
+.storefront-flash--error {
+    background: rgb(254 242 242);
+    color: rgb(153 27 27);
+    border-color: rgb(254 202 202);
+}
+
+/* ── Announcement bar ─────────────────────────────────────────── */
+.storefront-announcement {
+    background: rgb(11 11 15);
+    color: rgb(245 245 247);
+    text-align: center;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.625rem 1rem;
+}
+
+@media (min-width: 640px) {
+    .storefront-announcement {
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+    }
+}
+
+/* ── Header glass ─────────────────────────────────────────────── */
+.storefront-header-bar {
+    border-bottom: 1px solid rgb(232 232 237 / 0.85);
+    background: rgb(255 255 255 / 0.82);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    transition:
+        box-shadow 300ms cubic-bezier(0.22, 1, 0.36, 1),
+        background 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.storefront-header-bar.is-scrolled {
+    background: rgb(255 255 255 / 0.92);
+    box-shadow: 0 4px 24px -4px rgb(11 11 15 / 0.08);
+}
+
+/* ── Product cards — unified elevation ──────────────────────── */
+.product-card--premium.ds-product-card {
+    border: 1px solid rgb(232 232 237);
+    background: white;
+    box-shadow: 0 1px 2px rgb(11 11 15 / 0.04);
+}
+
+.product-card--premium:hover {
+    border-color: rgb(209 209 214);
+}
+
+/* ── Below-fold performance ───────────────────────────────────── */
+@media (min-width: 768px) {
+    .product-carousel-section,
+    .trust-section,
+    .testimonials-section,
+    .newsletter-section {
+        content-visibility: auto;
+        contain-intrinsic-size: auto 520px;
+    }
+}
+
+/* ── Selection & scroll polish ────────────────────────────────── */
+.ds-root ::selection {
+    background: rgb(0 113 227 / 0.18);
+    color: rgb(11 11 15);
+}
+
+.ds-root {
+    scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ds-root {
+        scroll-behavior: auto;
+    }
+}

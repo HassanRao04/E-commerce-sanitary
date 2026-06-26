@@ -27,6 +27,8 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
+            'phone' => '+92-300-'.fake()->numerify('#######'),
+            'status' => 'active',
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
@@ -41,5 +43,14 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
         ]);
+    }
+
+    public function customer(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            if (! $user->hasRole('customer')) {
+                $user->assignRole('customer');
+            }
+        });
     }
 }

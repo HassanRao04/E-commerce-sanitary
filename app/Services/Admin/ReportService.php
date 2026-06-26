@@ -1,0 +1,408 @@
+<?php
+
+namespace App\Services\Admin;
+
+use App\Enums\OrderStatus;
+use App\Enums\PaymentStatus;
+use App\Models\Customer;
+use App\Models\Inventory;
+use App\Models\Order;
+use App\Models\OrderItem;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+
+class ReportService
+{
+    public function type(string $type): array
+    {
+        $config = config("reports.types.{$type}");
+
+        abort_if(empty($config), 404);
+
+        return $config + ['key' => $type];
+    }
+
+    public function types(): Collection
+    {
+        return collect(config('reports.types', []))->map(
+            fn (array $meta, string $key): array => $meta + ['key' => $key]
+        );
+    }
+
+    public function defaultRange(string $type): array
+    {
+        $meta = $this->type($type);
+        $days = (int) ($meta['default_days'] ?? 30);
+
+        return [
+            'from' => now()->subDays(max(1, $days - 1))->startOfDay(),
+            'to' => now()->endOfDay(),
+        ];
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function build(string $type, Carbon $from, Carbon $to): array
+    {
+        return match ($type) {
+            'daily-sales' => $this->dailySales($from, $to),
+            'weekly-sales' => $this->weeklySales($from, $to),
+            'monthly-sales' => $this->monthlySalesRange($from, $to),
+            'yearly-sales' => $this->yearlySales($from, $to),
+            'product-sales' => $this->productSales($from, $to),
+            'category-sales' => $this->categorySales($from, $to),
+            'customers' => $this->customerReport($from, $to),
+            'inventory' => $this->inventoryReport(),
+            'revenue' => $this->revenueReport($from, $to),
+            default => abort(404),
+        };
+    }
+
+    public function dashboardWidgets(): array
+    {
+        $paid = $this->paidOrdersQuery();
+
+        return [
+            'today_revenue' => (float) (clone $paid)
+                ->whereDate('created_at', today())
+                ->sum('grand_total'),
+            'today_orders' => (clone $paid)
+                ->whereDate('created_at', today())
+                ->count(),
+            'week_revenue' => (float) (clone $paid)
+                ->where('created_at', '>=', now()->startOfWeek())
+                ->sum('grand_total'),
+            'week_orders' => (clone $paid)
+                ->where('created_at', '>=', now()->startOfWeek())
+                ->count(),
+        ];
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function dailySales(Carbon $from, Carbon $to): array
+    {
+        $grouped = $this->aggregateOrdersByKey($from, $to, 'Y-m-d', 'M j, Y');
+
+        return $this->salesPayload($grouped, 'Daily revenue');
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function weeklySales(Carbon $from, Carbon $to): array
+    {
+        $orders = $this->paidOrdersQuery()
+            ->whereBetween('created_at', [$from, $to])
+            ->get(['grand_total', 'created_at']);
+
+        $grouped = $orders->groupBy(
+            fn (Order $order): string => $order->created_at->copy()->startOfWeek()->format('Y-m-d')
+        )->map(function (Collection $items, string $weekStart): array {
+            return [
+                'label' => 'Week of '.Carbon::parse($weekStart)->format('M j, Y'),
+                'revenue' => (float) $items->sum('grand_total'),
+                'orders' => $items->count(),
+            ];
+        })->sortKeys()->values();
+
+        return $this->salesPayload($grouped, 'Weekly revenue');
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function monthlySalesRange(Carbon $from, Carbon $to): array
+    {
+        $grouped = $this->aggregateOrdersByKey($from, $to, 'Y-m', 'M Y');
+
+        return $this->salesPayload($grouped, 'Monthly revenue');
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function yearlySales(Carbon $from, Carbon $to): array
+    {
+        $grouped = $this->aggregateOrdersByKey($from, $to, 'Y', 'Y');
+
+        return $this->salesPayload($grouped, 'Yearly revenue');
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function productSales(Carbon $from, Carbon $to): array
+    {
+        $rows = OrderItem::query()
+            ->select('product_id', 'product_name', 'sku')
+            ->selectRaw('SUM(quantity) as units_sold')
+            ->selectRaw('SUM(total) as revenue')
+            ->whereHas('order', fn (Builder $q) => $this->applyPaidOrderConstraints($q, $from, $to))
+            ->whereNotNull('product_id')
+            ->groupBy('product_id', 'product_name', 'sku')
+            ->orderByDesc('revenue')
+            ->limit(100)
+            ->get()
+            ->map(fn ($row): array => [
+                'label' => $row->product_name,
+                'sku' => $row->sku,
+                'units_sold' => (int) $row->units_sold,
+                'revenue' => (float) $row->revenue,
+            ]);
+
+        $totalRevenue = (float) $rows->sum('revenue');
+        $totalUnits = (int) $rows->sum('units_sold');
+
+        return [
+            'summary' => [
+                'total_revenue' => $totalRevenue,
+                'total_units' => $totalUnits,
+                'product_count' => $rows->count(),
+            ],
+            'rows' => $rows,
+            'chart' => [
+                'type' => 'bar',
+                'label' => 'Product revenue',
+                'labels' => $rows->take(10)->pluck('label')->all(),
+                'values' => $rows->take(10)->pluck('revenue')->all(),
+            ],
+        ];
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function categorySales(Carbon $from, Carbon $to): array
+    {
+        $rows = DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->join('product_categories', 'product_categories.product_id', '=', 'order_items.product_id')
+            ->join('categories', 'categories.id', '=', 'product_categories.category_id')
+            ->where('orders.payment_status', PaymentStatus::Paid->value)
+            ->whereNotIn('orders.status', [OrderStatus::Cancelled->value, OrderStatus::Refunded->value])
+            ->whereBetween('orders.created_at', [$from, $to])
+            ->groupBy('categories.id', 'categories.name')
+            ->select('categories.name as label')
+            ->selectRaw('SUM(order_items.quantity) as units_sold')
+            ->selectRaw('SUM(order_items.total) as revenue')
+            ->orderByDesc('revenue')
+            ->get()
+            ->map(fn ($row): array => [
+                'label' => $row->label,
+                'units_sold' => (int) $row->units_sold,
+                'revenue' => (float) $row->revenue,
+            ]);
+
+        return [
+            'summary' => [
+                'total_revenue' => (float) $rows->sum('revenue'),
+                'total_units' => (int) $rows->sum('units_sold'),
+                'category_count' => $rows->count(),
+            ],
+            'rows' => $rows,
+            'chart' => [
+                'type' => 'doughnut',
+                'label' => 'Category revenue share',
+                'labels' => $rows->pluck('label')->all(),
+                'values' => $rows->pluck('revenue')->all(),
+            ],
+        ];
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function customerReport(Carbon $from, Carbon $to): array
+    {
+        $rows = Customer::query()
+            ->with('user:id,name,email,phone')
+            ->whereHas('orders', fn (Builder $q) => $this->applyPaidOrderConstraints($q, $from, $to))
+            ->withCount(['orders as orders_count' => fn (Builder $q) => $this->applyPaidOrderConstraints($q, $from, $to)])
+            ->withSum(['orders as period_revenue' => fn (Builder $q) => $this->applyPaidOrderConstraints($q, $from, $to)], 'grand_total')
+            ->orderByDesc('period_revenue')
+            ->limit(100)
+            ->get()
+            ->map(fn (Customer $customer): array => [
+                'label' => $customer->user?->name ?? 'Customer #'.$customer->id,
+                'email' => $customer->user?->email,
+                'customer_type' => $customer->customer_type?->value ?? 'retail',
+                'orders_count' => (int) $customer->orders_count,
+                'period_revenue' => (float) ($customer->period_revenue ?? 0),
+                'lifetime_spend' => (float) $customer->lifetime_spend,
+            ]);
+
+        return [
+            'summary' => [
+                'active_customers' => $rows->count(),
+                'total_revenue' => (float) $rows->sum('period_revenue'),
+                'total_orders' => (int) $rows->sum('orders_count'),
+            ],
+            'rows' => $rows,
+            'chart' => [
+                'type' => 'bar',
+                'label' => 'Top customers by revenue',
+                'labels' => $rows->take(10)->pluck('label')->all(),
+                'values' => $rows->take(10)->pluck('period_revenue')->all(),
+            ],
+        ];
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function inventoryReport(): array
+    {
+        $items = Inventory::query()
+            ->with(['productVariant.product', 'warehouse'])
+            ->orderByRaw('quantity_on_hand - quantity_reserved ASC')
+            ->limit(200)
+            ->get()
+            ->map(function (Inventory $item): array {
+                $variant = $item->productVariant;
+                $price = (float) ($variant?->sale_price ?? $variant?->price ?? 0);
+
+                return [
+                    'label' => $item->productVariant?->product?->name ?? 'Variant #'.$item->product_variant_id,
+                    'sku' => $item->productVariant?->sku,
+                    'warehouse' => $item->warehouse?->name,
+                    'on_hand' => (int) $item->quantity_on_hand,
+                    'reserved' => (int) $item->quantity_reserved,
+                    'available' => (int) $item->available_quantity,
+                    'status' => $item->is_out_of_stock ? 'Out of stock' : ($item->is_low_stock ? 'Low stock' : 'In stock'),
+                    'valuation' => round($item->available_quantity * $price, 2),
+                ];
+            });
+
+        return [
+            'summary' => [
+                'sku_count' => $items->count(),
+                'low_stock' => $items->where('status', 'Low stock')->count(),
+                'out_of_stock' => $items->where('status', 'Out of stock')->count(),
+                'total_valuation' => (float) $items->sum('valuation'),
+            ],
+            'rows' => $items,
+            'chart' => [
+                'type' => 'bar',
+                'label' => 'Inventory valuation (top items)',
+                'labels' => $items->sortByDesc('valuation')->take(10)->pluck('label')->values()->all(),
+                'values' => $items->sortByDesc('valuation')->take(10)->pluck('valuation')->values()->all(),
+            ],
+        ];
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function revenueReport(Carbon $from, Carbon $to): array
+    {
+        $orders = $this->paidOrdersQuery()
+            ->whereBetween('created_at', [$from, $to])
+            ->get([
+                'payment_method',
+                'subtotal',
+                'discount_total',
+                'shipping_total',
+                'tax_total',
+                'grand_total',
+            ]);
+
+        $byMethod = $orders->groupBy(fn (Order $order) => $order->payment_method?->value ?? 'unknown')
+            ->map(fn (Collection $group, string $method): array => [
+                'label' => str($method)->headline()->replace('_', ' ')->value(),
+                'orders' => $group->count(),
+                'revenue' => (float) $group->sum('grand_total'),
+            ])->values();
+
+        return [
+            'summary' => [
+                'gross_revenue' => (float) $orders->sum('grand_total'),
+                'subtotal' => (float) $orders->sum('subtotal'),
+                'discounts' => (float) $orders->sum('discount_total'),
+                'shipping' => (float) $orders->sum('shipping_total'),
+                'tax' => (float) $orders->sum('tax_total'),
+                'orders' => $orders->count(),
+            ],
+            'rows' => $byMethod,
+            'chart' => [
+                'type' => 'doughnut',
+                'label' => 'Revenue by payment method',
+                'labels' => $byMethod->pluck('label')->all(),
+                'values' => $byMethod->pluck('revenue')->all(),
+            ],
+        ];
+    }
+
+    public function exportHeaders(string $type): array
+    {
+        return match ($type) {
+            'daily-sales', 'weekly-sales', 'monthly-sales', 'yearly-sales' => ['Period', 'Orders', 'Revenue'],
+            'product-sales' => ['Product', 'SKU', 'Units Sold', 'Revenue'],
+            'category-sales' => ['Category', 'Units Sold', 'Revenue'],
+            'customers' => ['Customer', 'Email', 'Type', 'Orders', 'Period Revenue', 'Lifetime Spend'],
+            'inventory' => ['Product', 'SKU', 'Warehouse', 'On Hand', 'Reserved', 'Available', 'Status', 'Valuation'],
+            'revenue' => ['Payment Method', 'Orders', 'Revenue'],
+            default => ['Label', 'Value'],
+        };
+    }
+
+    /** @return array<int, array<int, string|float|int|null>> */
+    public function exportRows(string $type, Collection $rows): array
+    {
+        return match ($type) {
+            'daily-sales', 'weekly-sales', 'monthly-sales', 'yearly-sales' => $rows->map(fn ($r) => [
+                $r['label'], $r['orders'], $r['revenue'],
+            ])->all(),
+            'product-sales' => $rows->map(fn ($r) => [
+                $r['label'], $r['sku'], $r['units_sold'], $r['revenue'],
+            ])->all(),
+            'category-sales' => $rows->map(fn ($r) => [
+                $r['label'], $r['units_sold'], $r['revenue'],
+            ])->all(),
+            'customers' => $rows->map(fn ($r) => [
+                $r['label'], $r['email'], $r['customer_type'], $r['orders_count'], $r['period_revenue'], $r['lifetime_spend'],
+            ])->all(),
+            'inventory' => $rows->map(fn ($r) => [
+                $r['label'], $r['sku'], $r['warehouse'], $r['on_hand'], $r['reserved'], $r['available'], $r['status'], $r['valuation'],
+            ])->all(),
+            'revenue' => $rows->map(fn ($r) => [
+                $r['label'], $r['orders'], $r['revenue'],
+            ])->all(),
+            default => [],
+        };
+    }
+
+    private function paidOrdersQuery(): Builder
+    {
+        return Order::query()
+            ->where('payment_status', PaymentStatus::Paid)
+            ->whereNotIn('status', [OrderStatus::Cancelled, OrderStatus::Refunded]);
+    }
+
+    private function applyPaidOrderConstraints(Builder $query, Carbon $from, Carbon $to): void
+    {
+        $query->where('payment_status', PaymentStatus::Paid)
+            ->whereNotIn('status', [OrderStatus::Cancelled, OrderStatus::Refunded])
+            ->whereBetween('created_at', [$from, $to]);
+    }
+
+    private function aggregateOrdersByKey(Carbon $from, Carbon $to, string $keyFormat, string $labelFormat): Collection
+    {
+        return $this->paidOrdersQuery()
+            ->whereBetween('created_at', [$from, $to])
+            ->get(['grand_total', 'created_at'])
+            ->groupBy(fn (Order $order): string => $order->created_at->format($keyFormat))
+            ->sortKeys()
+            ->map(fn (Collection $items, string $key): array => [
+                'label' => Carbon::parse($key)->format($labelFormat),
+                'orders' => $items->count(),
+                'revenue' => (float) $items->sum('grand_total'),
+            ])
+            ->values();
+    }
+
+    /** @param Collection<int, array{label: string, orders: int, revenue: float}> $rows */
+    private function salesPayload(Collection $rows, string $chartLabel): array
+    {
+        return [
+            'summary' => [
+                'total_revenue' => (float) $rows->sum('revenue'),
+                'total_orders' => (int) $rows->sum('orders'),
+                'average_order_value' => $rows->sum('orders') > 0
+                    ? round($rows->sum('revenue') / $rows->sum('orders'), 2)
+                    : 0.0,
+            ],
+            'rows' => $rows,
+            'chart' => [
+                'type' => 'line',
+                'label' => $chartLabel,
+                'labels' => $rows->pluck('label')->all(),
+                'values' => $rows->pluck('revenue')->all(),
+            ],
+        ];
+    }
+}

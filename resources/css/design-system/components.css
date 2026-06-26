@@ -1,0 +1,420 @@
+/**
+ * Design System — Component & Utility Classes
+ * Prefix: ds- (design system)
+ * Usage: apply classes in Blade without changing business logic.
+ */
+
+@layer base {
+    .ds-root {
+        color: var(--ds-color-ink);
+        background-color: var(--ds-color-surface-subtle);
+        font-family: var(--ds-font-sans);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+    }
+
+    .ds-focus-ring {
+        @apply outline-none ring-2 ring-accent/30 ring-offset-2 ring-offset-surface;
+    }
+}
+
+@layer components {
+    /* ── Typography ──────────────────────────────────────────────── */
+    .ds-display-xl {
+        @apply font-display text-5xl md:text-6xl font-semibold tracking-tight text-ink leading-tight;
+    }
+
+    .ds-display-lg {
+        @apply font-display text-4xl md:text-5xl font-semibold tracking-tight text-ink leading-tight;
+    }
+
+    .ds-heading-1 {
+        @apply text-3xl md:text-4xl font-semibold tracking-tight text-ink;
+    }
+
+    .ds-heading-2 {
+        @apply text-2xl md:text-3xl font-semibold tracking-[-0.03em] text-ink leading-tight;
+    }
+
+    .ds-heading-3 {
+        @apply text-xl font-semibold tracking-tight text-ink;
+    }
+
+    .ds-heading-4 {
+        @apply text-lg font-semibold text-ink;
+    }
+
+    .ds-body-lg {
+        @apply text-lg text-ink-600 leading-relaxed;
+    }
+
+    .ds-body {
+        @apply text-base text-ink-600 leading-normal;
+    }
+
+    .ds-body-sm {
+        @apply text-sm text-ink-500 leading-snug;
+    }
+
+    .ds-caption {
+        @apply text-xs uppercase tracking-wide text-ink-400 font-medium;
+    }
+
+    .ds-label {
+        @apply text-sm font-medium text-ink-700;
+    }
+
+    .ds-link {
+        @apply text-accent underline-offset-4 transition-colors duration-250 ease-ds-out hover:text-accent-hover hover:underline;
+    }
+
+    /* ── Layout ──────────────────────────────────────────────────── */
+    .ds-container {
+        @apply mx-auto w-full max-w-content px-4 sm:px-6 lg:px-8;
+    }
+
+    .ds-container-narrow {
+        @apply mx-auto w-full max-w-prose px-4 sm:px-6;
+    }
+
+    .ds-section {
+        @apply py-14 md:py-18 lg:py-24;
+    }
+
+    .ds-section-tight {
+        @apply py-10 md:py-12 lg:py-14;
+    }
+
+    .ds-section-eyebrow {
+        @apply text-2xs font-semibold uppercase tracking-[0.14em] text-ink-400;
+    }
+
+    .ds-section-header {
+        @apply flex flex-col gap-2.5 max-w-2xl;
+    }
+
+    .ds-section-header__title {
+        @apply text-[clamp(1.625rem,3.5vw,2rem)] font-semibold tracking-tight text-ink leading-[1.12];
+    }
+
+    .ds-section-header__subtitle {
+        @apply text-[0.9375rem] leading-relaxed text-ink-500 max-w-xl;
+    }
+
+    .ds-divider {
+        @apply border-t border-ink-100;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────────────── */
+    .ds-btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-pill px-5 py-2.5 text-sm font-semibold
+               transition-all duration-250 ease-ds-out
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 focus-visible:ring-offset-2
+               disabled:pointer-events-none disabled:opacity-45;
+    }
+
+    .ds-btn-sm {
+        @apply ds-btn px-4 py-2 text-xs;
+    }
+
+    .ds-btn-lg {
+        @apply ds-btn px-7 py-3.5 text-base;
+    }
+
+    .ds-btn-primary {
+        @apply ds-btn bg-ink text-white shadow-ds-sm
+               hover:bg-ink-800 hover:shadow-ds-md active:scale-[0.98]
+               focus-visible:ring-ink/20;
+    }
+
+    .ds-btn-accent {
+        @apply ds-btn bg-accent text-white shadow-ds-sm hover:bg-accent-hover hover:shadow-ds-glow active:scale-[0.98];
+    }
+
+    .ds-btn-secondary {
+        @apply ds-btn border border-ink-200 bg-surface text-ink shadow-ds-xs
+               hover:border-ink-300 hover:bg-surface-subtle hover:shadow-ds-sm active:scale-[0.98];
+    }
+
+    .ds-btn-ghost {
+        @apply ds-btn bg-transparent text-ink hover:bg-ink-50 active:scale-[0.98];
+    }
+
+    .ds-btn-danger {
+        @apply ds-btn bg-danger text-white shadow-ds-sm hover:bg-red-700 active:scale-[0.98];
+    }
+
+    .ds-btn-icon {
+        @apply inline-flex h-10 w-10 items-center justify-center rounded-full border border-ink-200 bg-surface
+               text-ink transition-all duration-250 ease-ds-out
+               hover:border-ink-300 hover:bg-surface-subtle hover:shadow-ds-sm active:scale-95;
+    }
+
+    /* ── Cards ───────────────────────────────────────────────────── */
+    .ds-card {
+        @apply rounded-ds-lg border border-ink-100 bg-surface shadow-ds-xs;
+    }
+
+    .ds-card-elevated {
+        @apply ds-card shadow-ds-md;
+    }
+
+    .ds-card-interactive {
+        @apply ds-card transition-all duration-250 ease-ds-out
+               hover:-translate-y-0.5 hover:border-ink-200 hover:shadow-ds-md;
+    }
+
+    .ds-card-body {
+        @apply p-5 md:p-6;
+    }
+
+    .ds-card-header {
+        @apply border-b border-ink-100 px-5 py-4 md:px-6;
+    }
+
+    .ds-card-footer {
+        @apply border-t border-ink-100 px-5 py-4 md:px-6 bg-surface-subtle/60;
+    }
+
+    .ds-product-card {
+        @apply ds-card-interactive overflow-hidden;
+    }
+
+    .ds-product-card-media {
+        @apply aspect-[4/5] bg-surface-muted overflow-hidden;
+    }
+
+    .ds-product-card-body {
+        @apply p-4 space-y-1;
+    }
+
+    /* ── Forms ───────────────────────────────────────────────────── */
+    .ds-field {
+        @apply space-y-1.5;
+    }
+
+    .ds-input,
+    .ds-select,
+    .ds-textarea {
+        @apply block w-full rounded-ds border border-ink-200 bg-surface px-3.5 py-2.5 text-sm text-ink
+               shadow-ds-xs placeholder:text-ink-400
+               transition-all duration-250 ease-ds-out
+               hover:border-ink-300
+               focus:border-accent focus:ring-2 focus:ring-accent/20 focus:outline-none;
+    }
+
+    .ds-textarea {
+        @apply min-h-[120px] resize-y;
+    }
+
+    .ds-select {
+        @apply pr-10;
+    }
+
+    .ds-input-error,
+    .ds-select-error,
+    .ds-textarea-error {
+        @apply border-danger focus:border-danger focus:ring-danger/20;
+    }
+
+    .ds-help {
+        @apply text-xs text-ink-500;
+    }
+
+    .ds-error-text {
+        @apply text-xs text-danger;
+    }
+
+    .ds-checkbox {
+        @apply h-4 w-4 rounded border-ink-300 text-ink transition duration-250 ease-ds-out
+               focus:ring-2 focus:ring-accent/25 focus:ring-offset-0;
+    }
+
+    .ds-radio {
+        @apply h-4 w-4 border-ink-300 text-ink focus:ring-2 focus:ring-accent/25;
+    }
+
+    /* ── Badges ──────────────────────────────────────────────────── */
+    .ds-badge {
+        @apply inline-flex items-center rounded-pill px-2.5 py-0.5 text-2xs font-semibold uppercase tracking-wide;
+    }
+
+    .ds-badge-neutral {
+        @apply ds-badge bg-ink-100 text-ink-700;
+    }
+
+    .ds-badge-accent {
+        @apply ds-badge bg-accent-soft text-accent-dark;
+    }
+
+    .ds-badge-success {
+        @apply ds-badge bg-success-soft text-success border border-success-border;
+    }
+
+    .ds-badge-warning {
+        @apply ds-badge bg-warning-soft text-warning border border-warning-border;
+    }
+
+    .ds-badge-danger {
+        @apply ds-badge bg-danger-soft text-danger border border-danger-border;
+    }
+
+    .ds-badge-sale {
+        @apply ds-badge bg-commerce-sale-soft text-commerce-sale;
+    }
+
+    .ds-badge-new {
+        @apply ds-badge bg-commerce-new-soft text-commerce-new;
+    }
+
+    /* ── Alerts ──────────────────────────────────────────────────── */
+    .ds-alert {
+        @apply flex gap-3 rounded-ds-lg border px-4 py-3 text-sm;
+    }
+
+    .ds-alert-success {
+        @apply ds-alert border-success-border bg-success-soft text-success;
+    }
+
+    .ds-alert-warning {
+        @apply ds-alert border-warning-border bg-warning-soft text-warning;
+    }
+
+    .ds-alert-danger {
+        @apply ds-alert border-danger-border bg-danger-soft text-danger;
+    }
+
+    .ds-alert-info {
+        @apply ds-alert border-info-border bg-info-soft text-info;
+    }
+
+    .ds-alert-title {
+        @apply font-semibold;
+    }
+
+    /* ── Skeletons ───────────────────────────────────────────────── */
+    .ds-skeleton {
+        @apply relative overflow-hidden rounded-ds bg-ink-100;
+    }
+
+    .ds-skeleton::after {
+        content: '';
+        @apply absolute inset-0 animate-ds-shimmer bg-ds-shimmer-gradient;
+        background-size: 200% 100%;
+    }
+
+    .ds-skeleton-text {
+        @apply ds-skeleton h-4 w-full;
+    }
+
+    .ds-skeleton-title {
+        @apply ds-skeleton h-6 w-3/5;
+    }
+
+    .ds-skeleton-avatar {
+        @apply ds-skeleton h-10 w-10 rounded-full;
+    }
+
+    .ds-skeleton-media {
+        @apply ds-skeleton aspect-[4/5] w-full rounded-ds-lg;
+    }
+
+    .ds-skeleton-card {
+        @apply ds-card overflow-hidden;
+    }
+
+    .ds-skeleton-card .ds-skeleton-media {
+        @apply rounded-none;
+    }
+
+    /* ── Tables (admin/commerce lists) ─────────────────────────────── */
+    .ds-table-wrap {
+        @apply ds-card overflow-x-auto;
+    }
+
+    .ds-table {
+        @apply min-w-full divide-y divide-ink-100 text-sm;
+    }
+
+    .ds-table thead {
+        @apply bg-surface-muted/80;
+    }
+
+    .ds-table th {
+        @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ink-500;
+    }
+
+    .ds-table td {
+        @apply px-4 py-3 text-ink-700;
+    }
+
+    .ds-table tbody tr {
+        @apply transition-colors duration-250 hover:bg-surface-subtle;
+    }
+}
+
+@layer utilities {
+    /* ── Hover & motion utilities ────────────────────────────────── */
+    .ds-hover-lift {
+        @apply transition-transform duration-250 ease-ds-out hover:-translate-y-0.5;
+    }
+
+    .ds-hover-scale {
+        @apply transition-transform duration-250 ease-ds-out hover:scale-[1.02] active:scale-[0.98];
+    }
+
+    .ds-hover-glow {
+        @apply transition-shadow duration-250 ease-ds-out hover:shadow-ds-glow;
+    }
+
+    .ds-hover-fade {
+        @apply transition-opacity duration-250 ease-ds-out hover:opacity-80;
+    }
+
+    .ds-hover-underline {
+        @apply underline-offset-4 transition-all duration-250 ease-ds-out hover:underline;
+    }
+
+    .ds-animate-in {
+        @apply animate-ds-fade-in anim-gpu;
+    }
+
+    .ds-animate-up {
+        @apply animate-ds-slide-up anim-gpu;
+    }
+
+    /* Prefer data-aos / data-gsap-* attributes or <x-storefront.animate> for scroll effects */
+    [data-aos='fade-up'],
+    [data-aos='fade'],
+    [data-aos='fade-left'],
+    [data-aos='fade-right'],
+    [data-aos='zoom-in'] {
+        @apply anim-gpu;
+    }
+
+    .ds-image-zoom {
+        @apply transition-transform duration-350 ease-ds-out group-hover:scale-105;
+    }
+
+    .ds-overlay-dark {
+        @apply bg-ink/40 backdrop-blur-sm;
+    }
+
+    .ds-glass {
+        @apply bg-surface/80 backdrop-blur-md border border-white/20;
+    }
+
+    .ds-text-balance {
+        text-wrap: balance;
+    }
+
+    .ds-scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .ds-scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+}

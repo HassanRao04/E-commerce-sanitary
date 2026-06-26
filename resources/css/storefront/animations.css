@@ -1,0 +1,73 @@
+@import 'aos/dist/aos.css';
+
+/* ── AOS theme overrides (match design system) ───────────────── */
+[data-aos] {
+    pointer-events: auto;
+}
+
+[data-aos][data-aos][data-aos-duration='400'],
+body[data-aos-easing='ease-out-cubic'] [data-aos] {
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.aos-animate {
+    will-change: auto;
+}
+
+/* ── GSAP stagger initial state (prevents flash before JS) ─────── */
+html.js-animations-ready [data-gsap-stagger-item]:not(.gsap-revealed) {
+    opacity: 0;
+}
+
+.gsap-revealed,
+.no-js [data-gsap-stagger-item] {
+    opacity: 1;
+}
+
+/* ── GSAP hover targets ──────────────────────────────────────── */
+[data-gsap-hover] {
+    transform-origin: center center;
+    transition: box-shadow 250ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+}
+
+[data-gsap-hover]:focus-visible {
+    outline: 2px solid rgb(0 113 227);
+    outline-offset: 3px;
+}
+
+/* ── Animation utility classes (manual use) ────────────────────── */
+.anim-fade-up { --anim-y: 1.75rem; }
+.anim-fade-in { --anim-y: 0; }
+.anim-slide-left { --anim-x: -2.25rem; }
+.anim-slide-right { --anim-x: 2.25rem; }
+.anim-scale { --anim-scale: 0.92; }
+
+/* ── Performance ─────────────────────────────────────────────── */
+.anim-gpu {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-aos],
+    [data-gsap-stagger-item],
+    [data-gsap-hover],
+    [data-gsap-parallax] {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+        animation: none !important;
+    }
+
+    .aos-animate {
+        opacity: 1 !important;
+        transform: none !important;
+    }
+}
+
+@media (max-width: 768px) {
+    [data-aos] {
+        transition-duration: 450ms !important;
+    }
+}

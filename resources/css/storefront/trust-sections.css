@@ -1,0 +1,317 @@
+/* Homepage trust sections */
+.trust-section {
+    position: relative;
+}
+
+.trust-section--muted {
+    background: linear-gradient(180deg, rgb(250 250 250) 0%, rgb(255 255 255) 100%);
+    border-block: 1px solid rgb(232 232 237);
+}
+
+.trust-section--dark {
+    background:
+        radial-gradient(circle at 20% 0%, rgb(255 255 255 / 0.06), transparent 45%),
+        linear-gradient(180deg, rgb(11 11 15) 0%, rgb(28 28 30) 100%);
+}
+
+.trust-section__header {
+    max-width: 40rem;
+}
+
+.trust-section__header .ds-heading-2,
+.trust-section__header .ds-section-header__title {
+    margin-top: 0.75rem;
+}
+
+.trust-section__header .ds-badge-accent,
+.trust-section__header .ds-badge-neutral {
+    margin-bottom: 0;
+}
+
+.trust-section__header--light .ds-heading-2 {
+    color: white;
+}
+
+/* Scroll reveal */
+.trust-reveal {
+    opacity: 0;
+    transform: translateY(1.25rem);
+    transition:
+        opacity 550ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 550ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.trust-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.trust-reveal[data-delay='1'] { transition-delay: 60ms; }
+.trust-reveal[data-delay='2'] { transition-delay: 120ms; }
+.trust-reveal[data-delay='3'] { transition-delay: 180ms; }
+.trust-reveal[data-delay='4'] { transition-delay: 240ms; }
+.trust-reveal[data-delay='5'] { transition-delay: 300ms; }
+
+@media (prefers-reduced-motion: reduce) {
+    .trust-reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}
+
+/* Why Choose Us cards */
+.trust-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.trust-grid--4 {
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+    .trust-grid--4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .trust-grid--4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1.25rem;
+    }
+}
+
+.trust-card {
+    position: relative;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid rgb(232 232 237);
+    background: rgb(255 255 255);
+    transition:
+        transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 280ms cubic-bezier(0.22, 1, 0.36, 1),
+        border-color 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.trust-card:hover {
+    transform: translateY(-4px);
+    border-color: rgb(210 210 215);
+    box-shadow: 0 12px 32px -8px rgb(11 11 15 / 0.1);
+}
+
+.trust-card__icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.875rem;
+    background: rgb(245 245 247);
+    color: rgb(11 11 15);
+    margin-bottom: 1rem;
+    transition:
+        transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+        background 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.trust-card:hover .trust-card__icon-wrap {
+    transform: scale(1.08);
+    background: rgb(11 11 15);
+    color: white;
+}
+
+.trust-card__title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgb(11 11 15);
+    margin-bottom: 0.5rem;
+}
+
+.trust-card__text {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: rgb(110 110 115);
+}
+
+/* Shipping strip */
+.trust-shipping-strip {
+    display: grid;
+    gap: 0.875rem;
+}
+
+@media (min-width: 768px) {
+    .trust-shipping-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .trust-shipping-strip {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.trust-shipping-card {
+    display: flex;
+    gap: 0.875rem;
+    align-items: flex-start;
+    padding: 1.25rem;
+    border-radius: 1rem;
+    border: 1px solid rgb(232 232 237);
+    background: white;
+    transition:
+        transform 250ms cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.trust-shipping-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -6px rgb(11 11 15 / 0.08);
+}
+
+.trust-shipping-card__icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
+    background: rgb(11 11 15);
+    color: white;
+}
+
+.trust-shipping-card__title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: rgb(11 11 15);
+}
+
+.trust-shipping-card__text {
+    margin-top: 0.25rem;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: rgb(110 110 115);
+}
+
+/* Security badges */
+.trust-security-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 768px) {
+    .trust-security-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.trust-security-badge {
+    padding: 1.5rem;
+    border-radius: 1rem;
+    border: 1px solid rgb(255 255 255 / 0.1);
+    background: rgb(255 255 255 / 0.04);
+    backdrop-filter: blur(8px);
+    transition:
+        transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+        background 280ms cubic-bezier(0.22, 1, 0.36, 1),
+        border-color 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.trust-security-badge:hover {
+    transform: translateY(-3px);
+    background: rgb(255 255 255 / 0.08);
+    border-color: rgb(255 255 255 / 0.18);
+}
+
+.trust-security-badge__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.875rem;
+    background: rgb(255 255 255 / 0.08);
+    margin-bottom: 1rem;
+}
+
+.trust-security-badge__title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: white;
+    margin-bottom: 0.375rem;
+}
+
+.trust-security-badge__text {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: rgb(174 174 178);
+}
+
+/* Payment methods */
+.trust-payments {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.875rem;
+}
+
+@media (min-width: 640px) {
+    .trust-payments {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .trust-payments {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+}
+
+.trust-pay-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    min-height: 6.5rem;
+    padding: 1rem;
+    border-radius: 1rem;
+    border: 1px solid rgb(232 232 237);
+    background: white;
+    text-align: center;
+    transition:
+        transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.trust-pay-card:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 10px 28px -8px rgb(11 11 15 / 0.12);
+}
+
+.trust-pay-card__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: white;
+}
+
+.trust-pay-card__label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: rgb(28 28 30);
+}
+
+.trust-pay--cod .trust-pay-card__mark { background: rgb(34 197 94); }
+.trust-pay--jazzcash .trust-pay-card__mark { background: rgb(225 25 0); }
+.trust-pay--easypaisa .trust-pay-card__mark { background: rgb(22 163 74); }
+.trust-pay--bank .trust-pay-card__mark { background: rgb(37 99 235); }
+.trust-pay--card .trust-pay-card__mark { background: rgb(11 11 15); }

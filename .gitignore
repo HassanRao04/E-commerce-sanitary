@@ -1,6 +1,8 @@
 *.log
 .DS_Store
 .env
+.env.*
+!.env.example
 .env.backup
 .env.production
 .phpactor.json
@@ -22,3 +24,23 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Local databases
+*.sqlite
+*.sqlite3
+/database/*.sqlite
+/sanitary_store
+
+# Composer installer (local only)
+/composer-setup.php
+/composer.phar
+
+# OS / editor
+*.swp
+*.swo
+*~
+desktop.ini
+
+# Test / coverage
+/coverage
+/.phpunit.cache

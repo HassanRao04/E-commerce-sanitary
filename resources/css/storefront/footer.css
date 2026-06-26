@@ -1,0 +1,270 @@
+/* Storefront footer */
+.storefront-footer {
+    margin-top: auto;
+    background: rgb(11 11 15);
+    color: rgb(174 174 178);
+}
+
+.storefront-footer__top {
+    border-bottom: 1px solid rgb(255 255 255 / 0.08);
+}
+
+.storefront-footer__intro {
+    display: grid;
+    gap: 2.5rem;
+    padding: 3rem 0;
+}
+
+@media (min-width: 1024px) {
+    .storefront-footer__intro {
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+        align-items: start;
+        gap: 4rem;
+        padding: 4rem 0;
+    }
+}
+
+.storefront-footer__logo {
+    display: inline-block;
+    font-size: 1.375rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: white;
+    transition: opacity 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.storefront-footer__logo:hover {
+    opacity: 0.85;
+}
+
+.storefront-footer__tagline {
+    margin-top: 0.875rem;
+    max-width: 28rem;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: rgb(134 134 139);
+}
+
+.storefront-footer__social {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    margin-top: 1.25rem;
+}
+
+.storefront-footer__social-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
+    border: 1px solid rgb(255 255 255 / 0.12);
+    background: rgb(255 255 255 / 0.04);
+    color: rgb(198 198 204);
+    transition:
+        color 250ms cubic-bezier(0.22, 1, 0.36, 1),
+        background 250ms cubic-bezier(0.22, 1, 0.36, 1),
+        border-color 250ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.storefront-footer__social-link:hover {
+    color: white;
+    background: rgb(255 255 255 / 0.1);
+    border-color: rgb(255 255 255 / 0.2);
+    transform: translateY(-2px);
+}
+
+.storefront-footer__social-link--whatsapp:hover {
+    color: white;
+    background: rgb(34 197 94);
+    border-color: rgb(34 197 94);
+}
+
+.storefront-footer__contact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    margin-top: 1.25rem;
+    font-size: 0.8125rem;
+    color: rgb(134 134 139);
+    overflow-wrap: anywhere;
+}
+
+.storefront-footer__contact a {
+    color: rgb(198 198 204);
+    transition: color 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.storefront-footer__contact a:hover {
+    color: white;
+}
+
+/* Newsletter */
+.storefront-footer__newsletter-copy {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: rgb(134 134 139);
+}
+
+.storefront-footer__newsletter-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    margin-top: 1rem;
+}
+
+@media (min-width: 640px) {
+    .storefront-footer__newsletter-form {
+        flex-direction: row;
+    }
+}
+
+.storefront-footer__newsletter-input {
+    flex: 1;
+    min-height: 2.75rem;
+    border-radius: 9999px;
+    border: 1px solid rgb(255 255 255 / 0.12);
+    background: rgb(255 255 255 / 0.06);
+    padding: 0 1rem;
+    font-size: 0.875rem;
+    color: white;
+    transition:
+        border-color 250ms cubic-bezier(0.22, 1, 0.36, 1),
+        background 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.storefront-footer__newsletter-input::placeholder {
+    color: rgb(110 110 115);
+}
+
+.storefront-footer__newsletter-input:focus {
+    outline: none;
+    border-color: rgb(255 255 255 / 0.28);
+    background: rgb(255 255 255 / 0.1);
+}
+
+.storefront-footer__newsletter-input--error {
+    border-color: rgb(252 165 165);
+}
+
+.storefront-footer__newsletter-btn {
+    min-height: 2.75rem;
+    border-radius: 9999px;
+    padding: 0 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: rgb(11 11 15);
+    background: white;
+    transition:
+        background 250ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.storefront-footer__newsletter-btn:hover:not(:disabled) {
+    background: rgb(245 245 247);
+}
+
+.storefront-footer__newsletter-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.storefront-footer__newsletter-error {
+    margin-top: 0.5rem;
+    font-size: 0.8125rem;
+    color: rgb(252 165 165);
+}
+
+.storefront-footer__newsletter-success {
+    margin-top: 1rem;
+    padding: 0.875rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgb(34 197 94 / 0.35);
+    background: rgb(34 197 94 / 0.12);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: rgb(187 247 208);
+}
+
+/* Link columns */
+.storefront-footer__links {
+    padding: 2.5rem 0;
+}
+
+.storefront-footer__grid {
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+    .storefront-footer__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .storefront-footer__grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 2rem;
+    }
+}
+
+.storefront-footer__heading {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: white;
+}
+
+.storefront-footer__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    margin-top: 1rem;
+}
+
+.storefront-footer__list a {
+    display: inline-block;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    color: rgb(134 134 139);
+    transition:
+        color 250ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.storefront-footer__list a:hover {
+    color: white;
+    transform: translateX(2px);
+}
+
+/* Bottom bar */
+.storefront-footer__bottom {
+    border-top: 1px solid rgb(255 255 255 / 0.08);
+}
+
+.storefront-footer__bottom-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1.25rem 0 1.75rem;
+    font-size: 0.75rem;
+    color: rgb(110 110 115);
+}
+
+@media (min-width: 640px) {
+    .storefront-footer__bottom-inner {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+}
+
+.storefront-footer__bottom-meta {
+    color: rgb(134 134 139);
+}

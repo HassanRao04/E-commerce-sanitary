@@ -1,0 +1,215 @@
+/**
+ * Storefront hero slider — Swiper overrides & slide animations
+ */
+
+.hero-swiper {
+    --hero-height: clamp(28rem, 72vh, 44rem);
+}
+
+@media (min-width: 1024px) {
+    .hero-swiper {
+        --hero-height: clamp(32rem, 85vh, 48rem);
+    }
+}
+
+.hero-swiper__slider {
+    min-height: var(--hero-height);
+}
+
+.hero-swiper__slide {
+    min-height: var(--hero-height);
+    overflow: hidden;
+}
+
+.hero-swiper__bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    will-change: transform;
+}
+
+.hero-swiper__overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.hero-swiper__orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(64px);
+    opacity: 0.45;
+    will-change: transform;
+}
+
+.hero-swiper__grid {
+    position: absolute;
+    inset: 0;
+    opacity: 0.08;
+    background-image:
+        linear-gradient(rgb(255 255 255 / 0.35) 1px, transparent 1px),
+        linear-gradient(90deg, rgb(255 255 255 / 0.35) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(circle at 30% 40%, black, transparent 72%);
+}
+
+.hero-swiper__content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    min-height: var(--hero-height);
+    align-items: center;
+    padding-top: 2.5rem;
+    padding-bottom: 4.5rem;
+}
+
+.hero-swiper [data-hero-animate] {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0);
+    transition:
+        opacity 650ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 650ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition-delay: var(--hero-delay, 0ms);
+}
+
+.hero-swiper [data-hero-animate].is-visible {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+}
+
+.hero-swiper__pagination {
+    position: absolute !important;
+    left: 50% !important;
+    bottom: 1.25rem !important;
+    transform: translateX(-50%);
+    z-index: 20;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    width: auto !important;
+    max-width: calc(100% - 2rem);
+}
+
+.hero-swiper__pagination .swiper-pagination-bullet {
+    width: auto;
+    height: auto;
+    margin: 0 !important;
+    border-radius: 9999px;
+    background: transparent;
+    opacity: 1;
+}
+
+.hero-swiper__pagination .swiper-pagination-bullet .hero-swiper__bullet-label {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    border: 1px solid rgb(255 255 255 / 0.22);
+    background: rgb(255 255 255 / 0.08);
+    padding: 0.375rem 0.875rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.72);
+    backdrop-filter: blur(8px);
+    transition: all 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (max-width: 639px) {
+    .hero-swiper__pagination .swiper-pagination-bullet .hero-swiper__bullet-label {
+        display: none;
+    }
+
+    .hero-swiper__pagination .swiper-pagination-bullet {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 9999px;
+        background: rgb(255 255 255 / 0.35);
+    }
+
+    .hero-swiper__pagination .swiper-pagination-bullet-active {
+        background: white;
+        transform: scale(1.15);
+    }
+}
+
+.hero-swiper__pagination .swiper-pagination-bullet-active .hero-swiper__bullet-label {
+    border-color: rgb(255 255 255 / 0.55);
+    background: rgb(255 255 255 / 0.95);
+    color: #0b0b0f;
+    box-shadow: 0 8px 24px -8px rgb(0 0 0 / 0.35);
+}
+
+.hero-swiper__nav {
+    position: absolute;
+    top: 50%;
+    z-index: 20;
+    transform: translateY(-50%);
+}
+
+.hero-swiper__nav--prev {
+    left: 0.75rem;
+}
+
+.hero-swiper__nav--next {
+    right: 0.75rem;
+}
+
+@media (min-width: 1024px) {
+    .hero-swiper__nav--prev {
+        left: 1.5rem;
+    }
+
+    .hero-swiper__nav--next {
+        right: 1.5rem;
+    }
+}
+
+.hero-swiper__progress {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    z-index: 25;
+    height: 3px;
+    width: 100%;
+    transform-origin: left center;
+    transform: scaleX(0);
+    background: linear-gradient(90deg, #0071e3, #ffffff);
+    transition: transform linear;
+}
+
+.hero-swiper__promo-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1rem;
+    border: 1px solid rgb(255 255 255 / 0.14);
+    background: rgb(255 255 255 / 0.08);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 24px 48px -24px rgb(0 0 0 / 0.45);
+}
+
+.hero-swiper__promo-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgb(255 255 255 / 0.12), transparent 55%);
+    pointer-events: none;
+}
+
+.hero-swiper__shine {
+    position: absolute;
+    top: -20%;
+    right: -10%;
+    width: 40%;
+    height: 140%;
+    transform: rotate(18deg);
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.12), transparent);
+    animation: hero-shine 6s ease-in-out infinite;
+}
+
+@keyframes hero-shine {
+    0%, 100% { transform: rotate(18deg) translateX(-120%); }
+    50% { transform: rotate(18deg) translateX(120%); }
+}

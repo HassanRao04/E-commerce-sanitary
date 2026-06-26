@@ -1,0 +1,45 @@
+/* Storefront responsive & touch UX */
+.ds-root img,
+.ds-root video {
+    max-width: 100%;
+    height: auto;
+}
+
+.ds-root a,
+.ds-root button,
+.ds-root [role='button'],
+.ds-root input,
+.ds-root select,
+.ds-root textarea,
+.ds-root label {
+    -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 639px) {
+    .ds-section-tight {
+        padding-top: 2.5rem;
+        padding-bottom: 2.5rem;
+    }
+
+    .ds-btn,
+    .ds-btn-icon,
+    .shop-toolbar__filters-btn,
+    .product-card__action-btn {
+        min-height: 2.75rem;
+    }
+
+    .ds-btn-icon {
+        min-width: 2.75rem;
+    }
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .ds-card-interactive:hover {
+        transform: none;
+        box-shadow: inherit;
+    }
+
+    .product-card--premium:hover {
+        transform: none;
+    }
+}
