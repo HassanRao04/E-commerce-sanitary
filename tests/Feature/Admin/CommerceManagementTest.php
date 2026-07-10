@@ -3,7 +3,6 @@
 namespace Tests\Feature\Admin;
 
 use App\Enums\InvoiceStatus;
-use App\Enums\OrderStatus;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Order;
@@ -44,14 +43,14 @@ class CommerceManagementTest extends TestCase
     public function test_admin_can_update_order_status(): void
     {
         $order = Order::first();
-        $order->update(['status' => OrderStatus::Pending]);
+        $order->update(['status' => 'pending']);
 
         $this->actingAs($this->admin)->patch(route('admin.orders.update-status', $order), [
-            'status' => OrderStatus::Processing->value,
+            'status' => 'processing',
             'note' => 'Processing started',
         ])->assertRedirect();
 
-        $this->assertEquals(OrderStatus::Processing, $order->fresh()->status);
+        $this->assertSame('processing', $order->fresh()->status);
     }
 
     public function test_admin_can_view_customers_and_invoices(): void

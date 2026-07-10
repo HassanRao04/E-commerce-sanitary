@@ -25,7 +25,7 @@
         <div>
             <h3>Order Details</h3>
             <p>Payment: {{ str($order->payment_status->value)->headline() }}</p>
-            <p>Status: {{ str($order->status->value)->headline() }}</p>
+            <p>Status: {{ $order->status_label }}</p>
             @if ($order->coupon_code)
                 <p>Coupon: {{ $order->coupon_code }}</p>
             @endif

@@ -54,21 +54,32 @@ class AttributeSeeder extends Seeder
                 ['slug' => $definition['slug']],
                 [
                     'name' => $definition['name'],
-                    'type' => 'select',
+                    'type' => $definition['slug'] === 'color' ? 'color' : 'select',
                     'is_filterable' => $definition['is_filterable'],
                     'is_variant_attribute' => $definition['is_variant_attribute'],
                     'sort_order' => $index,
                 ]
             );
 
+            $colorHexMap = [
+                'white' => '#FFFFFF',
+                'black' => '#000000',
+                'grey' => '#808080',
+                'beige' => '#F5F5DC',
+                'gold' => '#D4AF37',
+            ];
+
             foreach ($definition['values'] as $valueIndex => $value) {
+                $valueSlug = Str::slug($value);
+
                 AttributeValue::updateOrCreate(
                     [
                         'attribute_id' => $attribute->id,
-                        'slug' => Str::slug($value),
+                        'slug' => $valueSlug,
                     ],
                     [
                         'value' => $value,
+                        'color_hex' => $definition['slug'] === 'color' ? ($colorHexMap[$valueSlug] ?? null) : null,
                         'sort_order' => $valueIndex,
                     ]
                 );

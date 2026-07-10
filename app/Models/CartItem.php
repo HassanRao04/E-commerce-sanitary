@@ -13,6 +13,7 @@ class CartItem extends Model
         'product_variant_id',
         'quantity',
         'unit_price',
+        'variant_options',
     ];
 
     protected function casts(): array
@@ -20,6 +21,7 @@ class CartItem extends Model
         return [
             'quantity' => 'integer',
             'unit_price' => 'decimal:2',
+            'variant_options' => 'array',
         ];
     }
 

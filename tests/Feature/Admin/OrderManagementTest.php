@@ -2,10 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
-use App\Enums\OrderStatus;
-use App\Models\Notification;
 use App\Models\Order;
-use App\Models\Shipping;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -26,7 +23,7 @@ class OrderManagementTest extends TestCase
     public function test_admin_can_search_and_filter_orders(): void
     {
         $order = Order::first();
-        $order->update(['status' => OrderStatus::Processing]);
+        $order->update(['status' => 'processing']);
 
         $this->actingAs($this->admin)
             ->get(route('admin.orders.index', ['q' => $order->order_number]))
@@ -34,7 +31,7 @@ class OrderManagementTest extends TestCase
             ->assertSee($order->order_number);
 
         $this->actingAs($this->admin)
-            ->get(route('admin.orders.index', ['status' => OrderStatus::Processing->value]))
+            ->get(route('admin.orders.index', ['status' => 'processing']))
             ->assertOk()
             ->assertSee($order->order_number);
     }
@@ -50,11 +47,11 @@ class OrderManagementTest extends TestCase
         }
 
         $this->actingAs($this->admin)->patch(route('admin.orders.update-status', $order), [
-            'status' => OrderStatus::Packed->value,
+            'status' => 'packed',
             'note' => 'Items packed and ready',
         ])->assertRedirect();
 
-        $this->assertEquals(OrderStatus::Packed, $order->fresh()->status);
+        $this->assertSame('packed', $order->fresh()->status);
 
         $this->assertDatabaseHas('notifications', [
             'user_id' => $order->user_id,
@@ -86,7 +83,7 @@ class OrderManagementTest extends TestCase
 
     public function test_admin_can_print_shipping_label(): void
     {
-        $shipment = Shipping::first();
+        $shipment = \App\Models\Shipping::first();
 
         if (! $shipment) {
             $order = Order::first();

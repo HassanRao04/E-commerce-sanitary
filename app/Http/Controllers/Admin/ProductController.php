@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreProductRequest;
 use App\Http\Requests\Admin\UpdateProductRequest;
+use App\Support\ProductVariationBuilder;
 use App\Models\Attribute;
 use App\Models\Category;
 use App\Models\Product;
@@ -93,12 +94,16 @@ class ProductController extends Controller
     /** @return array<string, mixed> */
     private function formData(Product $product): array
     {
+        $attributes = Attribute::query()->with('values')->orderBy('sort_order')->get();
+
         return [
             'product' => $product,
             'brands' => $this->brands->activeList(),
             'categories' => Category::query()->with('parent')->orderBy('name')->get(),
-            'attributes' => Attribute::query()->with('values')->orderBy('sort_order')->get(),
-            'variantAttributes' => Attribute::query()->where('is_variant_attribute', true)->with('values')->orderBy('sort_order')->get(),
+            'attributes' => $attributes,
+            'variantAttributes' => $attributes->where('is_variant_attribute', true)->values(),
+            'variationAttributes' => ProductVariationBuilder::attributesFromProduct($product->exists ? $product : null),
+            'existingVariants' => ProductVariationBuilder::variantsFromProduct($product->exists ? $product : null),
         ];
     }
 }

@@ -39,8 +39,11 @@
                 <ul class="space-y-2 ds-body-sm">
                     @foreach ($order->items as $item)
                         <li class="flex justify-between gap-4">
-                            <span>{{ $item->product_name }} × {{ $item->quantity }}</span>
-                            <span class="font-medium"><x-money :amount="$item->total" /></span>
+                            <div class="min-w-0">
+                                <p>{{ $item->product_name }} × {{ $item->quantity }}</p>
+                                <x-storefront.variant-options :item="$item" class="text-ink-500 text-xs mt-0.5" />
+                            </div>
+                            <span class="font-medium shrink-0"><x-money :amount="$item->total" /></span>
                         </li>
                     @endforeach
                 </ul>
@@ -58,8 +61,14 @@
                         </div>
                     @endif
                     <div class="flex justify-between"><dt>Shipping</dt><dd><x-money :amount="$order->shipping_total" /></dd></div>
+                    @if ($order->service_charge_total > 0)
+                        <div class="flex justify-between"><dt>Service charge</dt><dd><x-money :amount="$order->service_charge_total" /></dd></div>
+                    @endif
+                    @if ($order->handling_charge_total > 0)
+                        <div class="flex justify-between"><dt>Handling charge</dt><dd><x-money :amount="$order->handling_charge_total" /></dd></div>
+                    @endif
                     @if ($order->tax_total > 0)
-                        <div class="flex justify-between"><dt>{{ config('shop.tax_label', 'Tax') }}</dt><dd><x-money :amount="$order->tax_total" /></dd></div>
+                        <div class="flex justify-between"><dt>{{ $order->tax_label }}</dt><dd><x-money :amount="$order->tax_total" /></dd></div>
                     @endif
                     <div class="flex justify-between font-semibold text-base pt-2 border-t border-ink-100"><dt>Total</dt><dd><x-money :amount="$order->grand_total" /></dd></div>
                 </dl>

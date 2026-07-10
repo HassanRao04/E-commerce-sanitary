@@ -18,9 +18,7 @@
         </button>
 
         {{-- Logo --}}
-        <a href="{{ route('shop.home') }}" class="flex-1 min-w-0 max-w-[52%] sm:max-w-none text-base sm:text-lg lg:text-xl font-semibold text-ink tracking-tight truncate ds-hover-fade">
-            {{ config('app.name', 'Sanitary Store') }}
-        </a>
+        <x-storefront.site-logo class="ds-hover-fade" />
 
         {{-- Desktop quick links --}}
         <div class="hidden lg:flex items-center gap-1 flex-1 justify-center">

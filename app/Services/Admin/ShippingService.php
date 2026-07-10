@@ -2,13 +2,13 @@
 
 namespace App\Services\Admin;
 
-use App\Enums\OrderStatus;
 use App\Enums\ShipmentStatus;
 use App\Models\Order;
 use App\Models\Shipping;
 use App\Models\Tracking;
 use App\Repositories\Contracts\ShippingRepositoryInterface;
 use App\Services\ActivityLogService;
+use App\Services\OrderWorkflowService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -18,6 +18,7 @@ class ShippingService
         private readonly ShippingRepositoryInterface $shipping,
         private readonly ActivityLogService $activityLog,
         private readonly OrderNotificationService $orderNotifications,
+        private readonly OrderWorkflowService $workflow,
     ) {}
 
     public function paginatedList(array $filters = [], int $perPage = 15): LengthAwarePaginator
@@ -111,12 +112,12 @@ class ShippingService
     private function syncOrderStatus(Order $order, ShipmentStatus $status): void
     {
         $orderStatus = match ($status) {
-            ShipmentStatus::Delivered => OrderStatus::Delivered,
-            ShipmentStatus::InTransit, ShipmentStatus::OutForDelivery, ShipmentStatus::Picked => OrderStatus::Shipped,
+            ShipmentStatus::Delivered => $this->workflow->slugForShipmentDelivered(),
+            ShipmentStatus::InTransit, ShipmentStatus::OutForDelivery, ShipmentStatus::Picked => $this->workflow->slugForShipmentShipped(),
             default => null,
         };
 
-        if ($orderStatus && $order->status !== OrderStatus::Cancelled) {
+        if ($orderStatus && ! $this->workflow->isCancelled($order->status)) {
             $order->update(['status' => $orderStatus]);
         }
     }

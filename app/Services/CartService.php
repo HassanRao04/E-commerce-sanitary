@@ -6,6 +6,7 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Support\VariantOptionFormatter;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
@@ -13,6 +14,8 @@ class CartService
 {
     public function __construct(
         private readonly CheckoutPricingService $pricing,
+        private readonly InventoryControlService $inventory,
+        private readonly ProductPricingService $productPricing,
     ) {}
 
     public function resolve(): Cart
@@ -23,17 +26,31 @@ class CartService
             $cart = Cart::query()->find($cartId);
 
             if ($cart) {
-                if (Auth::check() && $cart->user_id !== Auth::id()) {
-                    $cart->update([
-                        'user_id' => Auth::id(),
-                        'session_id' => null,
-                    ]);
+                if (Auth::check()) {
+                    if ($cart->user_id && $cart->user_id !== Auth::id()) {
+                        session()->forget($sessionKey);
+                    } elseif ($cart->user_id === null) {
+                        $cart->update([
+                            'user_id' => Auth::id(),
+                            'session_id' => null,
+                        ]);
+
+                        return $cart;
+                    } else {
+                        return $cart;
+                    }
+                } elseif ($cart->user_id === null) {
+                    if ($cart->session_id !== session()->getId()) {
+                        $cart->update(['session_id' => session()->getId()]);
+                    }
+
+                    return $cart;
+                } else {
+                    session()->forget($sessionKey);
                 }
-
-                return $cart;
+            } else {
+                session()->forget($sessionKey);
             }
-
-            session()->forget($sessionKey);
         }
 
         if (! Auth::check()) {
@@ -61,27 +78,54 @@ class CartService
 
     public function getCart(): Cart
     {
-        return $this->resolve()->load([
+        return $this->syncCartPrices($this->resolve()->load([
             'items.product.brand',
             'items.product.images',
             'items.productVariant',
             'coupon',
-        ]);
+        ]));
+    }
+
+    public function syncCartPrices(Cart $cart): Cart
+    {
+        $customerType = $this->productPricing->customerType();
+
+        foreach ($cart->items as $item) {
+            if (! $item->productVariant) {
+                continue;
+            }
+
+            $displayPrice = $this->productPricing->displayPrice($item->productVariant, $customerType);
+
+            if ((float) $item->unit_price !== $displayPrice) {
+                $item->update(['unit_price' => $displayPrice]);
+                $item->unit_price = $displayPrice;
+            }
+        }
+
+        return $cart;
     }
 
     public function addItem(int $productId, ?int $variantId, int $quantity): CartItem
     {
         $product = Product::query()->active()->findOrFail($productId);
+
+        if ($product->product_type === 'variable' && ! $variantId) {
+            throw ValidationException::withMessages([
+                'product_variant_id' => 'Please select all required options before adding to cart.',
+            ]);
+        }
+
         $variant = $this->resolveVariant($product, $variantId);
+
+        if (! $variant->is_active) {
+            throw ValidationException::withMessages([
+                'product_variant_id' => 'The selected variation is not available.',
+            ]);
+        }
 
         if ($quantity < 1) {
             throw ValidationException::withMessages(['quantity' => 'Quantity must be at least 1.']);
-        }
-
-        if ($variant->stock_quantity < $quantity) {
-            throw ValidationException::withMessages([
-                'quantity' => "Only {$variant->stock_quantity} units available for {$product->name}.",
-            ]);
         }
 
         $cart = $this->resolve();
@@ -89,25 +133,50 @@ class CartService
             ->where('product_variant_id', $variant->id)
             ->first();
 
+        $heldInCart = $existing?->quantity ?? 0;
+        $newTotal = $heldInCart + $quantity;
+        $available = $this->inventory->availableQuantity($variant, $heldInCart);
+
+        if ($newTotal > $available) {
+            throw ValidationException::withMessages([
+                'quantity' => "Only {$available} units available for {$product->name}.",
+            ]);
+        }
+
         if ($existing) {
-            $newQuantity = $existing->quantity + $quantity;
+            $this->inventory->reserve(
+                $variant,
+                $quantity,
+                Cart::class,
+                $cart->id,
+                'Cart quantity increased',
+            );
 
-            if ($newQuantity > $variant->stock_quantity) {
-                throw ValidationException::withMessages([
-                    'quantity' => "Only {$variant->stock_quantity} units available in total.",
-                ]);
-            }
+            $displayPrice = $this->productPricing->displayPrice($variant);
 
-            $existing->update(['quantity' => $newQuantity]);
+            $existing->update([
+                'quantity' => $newTotal,
+                'unit_price' => $displayPrice,
+                'variant_options' => VariantOptionFormatter::forVariant($variant),
+            ]);
 
             return $existing->fresh(['product', 'productVariant']);
         }
+
+        $this->inventory->reserve(
+            $variant,
+            $quantity,
+            Cart::class,
+            $cart->id,
+            'Added to cart',
+        );
 
         return $cart->items()->create([
             'product_id' => $product->id,
             'product_variant_id' => $variant->id,
             'quantity' => $quantity,
-            'unit_price' => $variant->effective_price,
+            'unit_price' => $this->productPricing->displayPrice($variant),
+            'variant_options' => VariantOptionFormatter::forVariant($variant),
         ])->load(['product', 'productVariant']);
     }
 
@@ -120,11 +189,33 @@ class CartService
         }
 
         $variant = $item->productVariant;
+        $previousQuantity = $item->quantity;
 
-        if ($quantity > $variant->stock_quantity) {
-            throw ValidationException::withMessages([
-                'quantity' => "Only {$variant->stock_quantity} units available.",
-            ]);
+        if ($quantity > $previousQuantity) {
+            $delta = $quantity - $previousQuantity;
+            $available = $this->inventory->availableQuantity($variant, $previousQuantity);
+
+            if ($quantity > $available) {
+                throw ValidationException::withMessages([
+                    'quantity' => "Only {$available} units available.",
+                ]);
+            }
+
+            $this->inventory->reserve(
+                $variant,
+                $delta,
+                CartItem::class,
+                $item->id,
+                'Cart line quantity increased',
+            );
+        } elseif ($quantity < $previousQuantity) {
+            $this->inventory->release(
+                $variant,
+                $previousQuantity - $quantity,
+                CartItem::class,
+                $item->id,
+                'Cart line quantity decreased',
+            );
         }
 
         $item->update(['quantity' => $quantity]);
@@ -135,11 +226,38 @@ class CartService
     public function removeItem(CartItem $item): void
     {
         $this->assertCartItemOwnership($item);
+
+        $variant = $item->productVariant;
+
+        if ($variant && $item->quantity > 0) {
+            $this->inventory->release(
+                $variant,
+                $item->quantity,
+                CartItem::class,
+                $item->id,
+                'Removed from cart',
+            );
+        }
+
         $item->delete();
     }
 
     public function clear(Cart $cart): void
     {
+        $cart->load('items.productVariant');
+
+        foreach ($cart->items as $item) {
+            if ($item->productVariant && $item->quantity > 0) {
+                $this->inventory->release(
+                    $item->productVariant,
+                    $item->quantity,
+                    CartItem::class,
+                    $item->id,
+                    'Cart cleared',
+                );
+            }
+        }
+
         $cart->items()->delete();
         $cart->update(['coupon_id' => null]);
         session()->forget('shop.cart_id');
@@ -179,15 +297,49 @@ class CartService
         $userCart = Cart::query()->firstOrCreate(['user_id' => $userId]);
         $userCart->load('items');
 
+        $existingByVariant = $userCart->items->keyBy('product_variant_id');
+
         foreach ($guestCart->items as $item) {
-            $existing = $userCart->items()
-                ->where('product_variant_id', $item->product_variant_id)
-                ->first();
+            $variant = $item->productVariant;
+
+            if (! $variant) {
+                $item->delete();
+
+                continue;
+            }
+
+            $existing = $existingByVariant->get($item->product_variant_id);
 
             if ($existing) {
-                $maxStock = $item->productVariant->stock_quantity;
+                $desiredQuantity = $existing->quantity + $item->quantity;
+
+                $this->inventory->release(
+                    $variant,
+                    $item->quantity,
+                    CartItem::class,
+                    $item->id,
+                    'Guest cart merged',
+                );
+
+                $maxAllowed = $this->inventory->availableQuantity($variant, $existing->quantity);
+                $newQuantity = min($desiredQuantity, $maxAllowed);
+                $delta = $newQuantity - $existing->quantity;
+
+                if ($delta > 0) {
+                    $this->inventory->reserve(
+                        $variant,
+                        $delta,
+                        Cart::class,
+                        $userCart->id,
+                        'Guest cart merged',
+                    );
+                }
+
                 $existing->update([
-                    'quantity' => min($existing->quantity + $item->quantity, $maxStock),
+                    'quantity' => $newQuantity,
+                    'unit_price' => $this->productPricing->displayPrice($variant),
+                    'variant_options' => $item->variant_options
+                        ?? VariantOptionFormatter::forVariant($variant),
                 ]);
                 $item->delete();
             } else {
@@ -213,13 +365,13 @@ class CartService
         return (int) $cart->items()->sum('quantity');
     }
 
-    /** @return array{subtotal: float, discount: float, shipping: float, tax: float, grand_total: float} */
+    /** @return array{subtotal: float, discount: float, shipping: float, service_charge: float, handling_charge: float, tax: float, grand_total: float} */
     public function totals(?Cart $cart = null): array
     {
         $cart ??= $this->getCart();
 
         return collect($this->pricing->calculate($cart))
-            ->only(['subtotal', 'discount', 'shipping', 'tax', 'grand_total'])
+            ->only(['subtotal', 'discount', 'shipping', 'service_charge', 'handling_charge', 'tax', 'grand_total'])
             ->all();
     }
 
@@ -234,12 +386,18 @@ class CartService
             'count' => $this->itemCount($cart),
             'items' => $cart->items->map(function (CartItem $item) use ($symbol): array {
                 $lineTotal = (float) $item->unit_price * $item->quantity;
+                $variantOptions = $item->variant_options
+                    ?? ($item->productVariant ? VariantOptionFormatter::forVariant($item->productVariant) : []);
 
                 return [
                     'id' => $item->id,
                     'product_id' => $item->product_id,
                     'name' => $item->product->name,
-                    'variant' => $item->productVariant?->variant_name,
+                    'variant' => VariantOptionFormatter::labelOrFallback(
+                        $variantOptions,
+                        $item->productVariant?->variant_name,
+                    ),
+                    'variant_options' => $variantOptions,
                     'quantity' => $item->quantity,
                     'unit_price' => (float) $item->unit_price,
                     'line_total' => $lineTotal,

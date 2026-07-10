@@ -13,6 +13,10 @@
     <meta property="og:url" content="{{ url()->current() }}">
     @stack('meta')
     <meta name="theme-color" content="#0B0B0F">
+    @php($siteSettings = \App\Models\SiteSetting::current())
+    @if ($siteSettings->favicon_url)
+        <link rel="icon" href="{{ $siteSettings->favicon_url }}">
+    @endif
     <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700|inter:400,500,600,700&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])

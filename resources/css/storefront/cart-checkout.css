@@ -300,6 +300,33 @@
     color: rgb(110 110 115);
 }
 
+.variant-options {
+    list-style: none;
+    margin: 0.25rem 0 0;
+    padding: 0;
+}
+
+.variant-options li + li {
+    margin-top: 0.125rem;
+}
+
+.variant-options__name {
+    color: rgb(110 110 115);
+}
+
+.variant-options__value {
+    color: rgb(28 28 30);
+}
+
+.variant-options--fallback {
+    margin: 0.25rem 0 0;
+}
+
+.order-summary__item-meta.variant-options,
+.order-summary__item-meta .variant-options {
+    margin-top: 0.125rem;
+}
+
 .cart-item__line-total {
     font-size: 1rem;
     font-weight: 700;

@@ -2,14 +2,15 @@
 
 namespace App\Services\Admin;
 
-use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use App\Services\ActivityLogService;
+use App\Services\OrderWorkflowService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class OrderService
 {
@@ -17,6 +18,7 @@ class OrderService
         private readonly OrderRepositoryInterface $orders,
         private readonly ActivityLogService $activityLog,
         private readonly OrderNotificationService $notifications,
+        private readonly OrderWorkflowService $workflow,
     ) {}
 
     public function paginatedList(array $filters = [], int $perPage = 15): LengthAwarePaginator
@@ -26,13 +28,7 @@ class OrderService
 
     public function statusCounts(): array
     {
-        $counts = [];
-
-        foreach (OrderStatus::cases() as $status) {
-            $counts[$status->value] = Order::query()->where('status', $status)->count();
-        }
-
-        return $counts;
+        return $this->workflow->countsByStatus();
     }
 
     public function findWithRelations(int $id): Order
@@ -40,7 +36,8 @@ class OrderService
         return Order::query()
             ->with([
                 'items.productVariant',
-                'statusHistories',
+                'statusHistories.orderStatus',
+                'orderStatus',
                 'payments',
                 'shipments.trackingEvents',
                 'invoice.items',
@@ -51,25 +48,33 @@ class OrderService
             ->findOrFail($id);
     }
 
-    public function updateStatus(Order $order, OrderStatus $status, ?string $note = null): Order
+    public function updateStatus(Order $order, string $statusSlug, ?string $note = null): Order
     {
-        return DB::transaction(function () use ($order, $status, $note) {
+        $definition = $this->workflow->find($statusSlug);
+
+        if (! $definition || ! $definition->is_active) {
+            throw ValidationException::withMessages([
+                'status' => 'The selected order status is not available.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($order, $statusSlug, $note, $definition) {
             $old = $order->status;
-            $order->update(['status' => $status]);
+            $order->update(['status' => $statusSlug]);
 
             OrderStatusHistory::create([
                 'order_id' => $order->id,
-                'status' => $status,
+                'status' => $statusSlug,
                 'note' => $note,
             ]);
 
-            $this->notifications->notifyStatusChange($order, $old, $status, $note);
+            $this->notifications->notifyStatusChange($order, $old, $statusSlug, $note, $definition);
 
             $this->activityLog->log('order.status_updated', $order, [
-                'status' => $old?->value,
-            ], ['status' => $status->value]);
+                'status' => $old,
+            ], ['status' => $statusSlug]);
 
-            return $order->fresh();
+            return $order->fresh(['orderStatus']);
         });
     }
 
@@ -89,6 +94,8 @@ class OrderService
 
     public function cancel(Order $order, ?string $note = null): Order
     {
-        return $this->updateStatus($order, OrderStatus::Cancelled, $note ?? 'Order cancelled by admin');
+        $cancelledSlug = $this->workflow->all()->firstWhere('is_cancellation', true)?->slug ?? 'cancelled';
+
+        return $this->updateStatus($order, $cancelledSlug, $note ?? 'Order cancelled by admin');
     }
 }

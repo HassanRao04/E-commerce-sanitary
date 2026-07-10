@@ -3,9 +3,10 @@
 namespace App\Models;
 
 use App\Models\Product;
+use App\Services\InventoryControlService;
+use App\Support\VariantColorSwatch;
 use Database\Factories\ProductVariantFactory;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Casts\Attribute as CastAttribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -29,6 +30,8 @@ class ProductVariant extends Model
         'material',
         'price',
         'sale_price',
+        'wholesale_price',
+        'dealer_price',
         'cost_price',
         'stock_quantity',
         'low_stock_threshold',
@@ -46,6 +49,8 @@ class ProductVariant extends Model
         return [
             'price' => 'decimal:2',
             'sale_price' => 'decimal:2',
+            'wholesale_price' => 'decimal:2',
+            'dealer_price' => 'decimal:2',
             'cost_price' => 'decimal:2',
             'weight' => 'decimal:2',
             'length' => 'decimal:2',
@@ -59,16 +64,9 @@ class ProductVariant extends Model
         ];
     }
 
-    protected function effectivePrice(): CastAttribute
-    {
-        return CastAttribute::get(function (): string {
-            return (string) ($this->sale_price ?? $this->price);
-        });
-    }
-
     public function isInStock(): bool
     {
-        return $this->stock_quantity > 0;
+        return app(InventoryControlService::class)->isPurchasable($this);
     }
 
     public function scopeActive(Builder $query): Builder
@@ -78,7 +76,14 @@ class ProductVariant extends Model
 
     public function scopeInStock(Builder $query): Builder
     {
-        return $query->where('stock_quantity', '>', 0);
+        return $query->where(function (Builder $stockQuery): void {
+            $stockQuery->whereHas('inventory', fn (Builder $inventoryQuery) => $inventoryQuery
+                ->whereRaw('quantity_on_hand - quantity_reserved > 0'))
+                ->orWhere(function (Builder $fallbackQuery): void {
+                    $fallbackQuery->whereDoesntHave('inventory')
+                        ->where('stock_quantity', '>', 0);
+                });
+        });
     }
 
     public function product(): BelongsTo
@@ -110,5 +115,20 @@ class ProductVariant extends Model
     public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class);
+    }
+
+    /**
+     * @return array{name: string, hex: string}|null
+     */
+    public function swatchColor(): ?array
+    {
+        return VariantColorSwatch::forVariant($this);
+    }
+
+    public function swatchHex(): ?string
+    {
+        $swatch = VariantColorSwatch::forVariant($this);
+
+        return $swatch['hex'] ?? VariantColorSwatch::normalizeHex($this->color_hex);
     }
 }

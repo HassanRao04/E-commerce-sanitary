@@ -3,42 +3,15 @@
 ])
 
 @php
+    use App\Support\StorefrontFooter;
+    use App\Support\StorefrontHeader;
+
     $settings = \App\Models\SiteSetting::current();
-    $socialLinks = collect($settings->social_links ?? [])->filter();
+    $footer = $storefrontFooter ?? StorefrontFooter::resolved($settings);
+    $showFooterSocial = StorefrontHeader::showSocialInFooter($settings);
     $footerCategories = $categories->isNotEmpty()
         ? $categories
-        : \App\Models\Category::query()->active()->roots()->ordered()->limit(6)->get();
-
-    $shopLinks = [
-        ['label' => 'All products', 'url' => route('shop.products.index')],
-        ['label' => 'New arrivals', 'url' => route('shop.products.index', ['collection' => 'new'])],
-        ['label' => 'Best sellers', 'url' => route('shop.products.index', ['collection' => 'best-sellers'])],
-        ['label' => 'Flash sale', 'url' => route('shop.products.index', ['collection' => 'sale'])],
-        ['label' => 'Wishlist', 'url' => route('shop.wishlist.index')],
-        ['label' => 'Shopping cart', 'url' => route('shop.cart.index')],
-    ];
-
-    $supportLinks = [
-        ['label' => 'Contact us', 'url' => route('shop.contact')],
-        ['label' => 'Track order', 'url' => route('shop.orders.track')],
-        ['label' => 'My account', 'url' => route('shop.account.dashboard')],
-        ['label' => 'About us', 'url' => route('shop.about')],
-        ['label' => 'Checkout', 'url' => route('shop.checkout.index')],
-    ];
-
-    $policyLinks = [
-        ['label' => 'Shipping policy', 'url' => route('shop.contact')],
-        ['label' => 'Returns & refunds', 'url' => route('shop.contact')],
-        ['label' => 'Privacy policy', 'url' => route('shop.contact')],
-        ['label' => 'Terms of service', 'url' => route('shop.contact')],
-    ];
-
-    $socialProfiles = [
-        'facebook' => ['label' => 'Facebook', 'icon' => 'facebook'],
-        'instagram' => ['label' => 'Instagram', 'icon' => 'instagram'],
-        'youtube' => ['label' => 'YouTube', 'icon' => 'youtube'],
-        'twitter' => ['label' => 'X (Twitter)', 'icon' => 'twitter'],
-    ];
+        : app(\App\Services\Storefront\StorefrontContentService::class)->footerCategories();
 
     $newsletterSuccess = session('newsletter_success');
 @endphp
@@ -48,41 +21,13 @@
         <div class="ds-container">
             <div class="storefront-footer__intro anim-gpu" data-aos="fade-up">
                 <div class="storefront-footer__brand">
-                    <a href="{{ route('shop.home') }}" class="storefront-footer__logo">
-                        {{ config('app.name', 'Sanitary Store') }}
-                    </a>
+                    <x-storefront.site-logo href="{{ route('shop.home') }}" variant="footer" />
                     <p class="storefront-footer__tagline">
-                        {{ $settings->default_meta_description ?? 'Premium sanitary ware for homes, offices, and commercial projects across Pakistan.' }}
+                        {{ $footer['tagline'] ?: ($settings->default_meta_description ?? '') }}
                     </p>
 
-                    @if ($socialLinks->isNotEmpty() || filled($settings->whatsapp))
-                        <div class="storefront-footer__social" aria-label="Social links">
-                            @foreach ($socialProfiles as $key => $profile)
-                                @if (filled($socialLinks[$key] ?? null))
-                                    <a
-                                        href="{{ $socialLinks[$key] }}"
-                                        class="storefront-footer__social-link"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        aria-label="{{ $profile['label'] }}"
-                                    >
-                                        @include('storefront.partials.footer.social-icon', ['icon' => $profile['icon']])
-                                    </a>
-                                @endif
-                            @endforeach
-
-                            @if (filled($settings->whatsapp))
-                                <a
-                                    href="https://wa.me/{{ preg_replace('/\D+/', '', $settings->whatsapp) }}"
-                                    class="storefront-footer__social-link storefront-footer__social-link--whatsapp"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    aria-label="WhatsApp"
-                                >
-                                    @include('storefront.partials.footer.social-icon', ['icon' => 'whatsapp'])
-                                </a>
-                            @endif
-                        </div>
+                    @if ($showFooterSocial)
+                        <x-storefront.social-links variant="footer" class="storefront-footer__social" />
                     @endif
 
                     <ul class="storefront-footer__contact">
@@ -101,8 +46,8 @@
                 </div>
 
                 <div class="storefront-footer__newsletter">
-                    <p class="storefront-footer__heading">Newsletter</p>
-                    <p class="storefront-footer__newsletter-copy">Get 10% off your first order. Exclusive deals, no spam.</p>
+                    <p class="storefront-footer__heading">{{ $footer['newsletter']['title'] ?? 'Newsletter' }}</p>
+                    <p class="storefront-footer__newsletter-copy">{{ $footer['newsletter']['copy'] ?? '' }}</p>
 
                     @if ($newsletterSuccess)
                         <div class="storefront-footer__newsletter-success" role="status">
@@ -146,23 +91,16 @@
     <div class="storefront-footer__links">
         <div class="ds-container">
             <div class="storefront-footer__grid">
-                <div class="storefront-footer__column">
-                    <p class="storefront-footer__heading">Company</p>
-                    <ul class="storefront-footer__list">
-                        <li><a href="{{ route('shop.about') }}">About us</a></li>
-                        <li><a href="{{ route('shop.contact') }}">Contact</a></li>
-                        <li><a href="{{ route('shop.home') }}">Storefront</a></li>
-                    </ul>
-                </div>
-
-                <div class="storefront-footer__column">
-                    <p class="storefront-footer__heading">Shop</p>
-                    <ul class="storefront-footer__list">
-                        @foreach ($shopLinks as $link)
-                            <li><a href="{{ $link['url'] }}">{{ $link['label'] }}</a></li>
-                        @endforeach
-                    </ul>
-                </div>
+                @foreach ($footer['columns'] as $column)
+                    <div class="storefront-footer__column">
+                        <p class="storefront-footer__heading">{{ $column['heading'] }}</p>
+                        <ul class="storefront-footer__list">
+                            @foreach ($column['links'] as $link)
+                                <li><a href="{{ StorefrontFooter::linkUrl($link) }}">{{ $link['label'] }}</a></li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endforeach
 
                 <div class="storefront-footer__column">
                     <p class="storefront-footer__heading">Categories</p>
@@ -176,32 +114,16 @@
                         @endforelse
                     </ul>
                 </div>
-
-                <div class="storefront-footer__column">
-                    <p class="storefront-footer__heading">Support</p>
-                    <ul class="storefront-footer__list">
-                        @foreach ($supportLinks as $link)
-                            <li><a href="{{ $link['url'] }}">{{ $link['label'] }}</a></li>
-                        @endforeach
-                    </ul>
-                </div>
-
-                <div class="storefront-footer__column">
-                    <p class="storefront-footer__heading">Policies</p>
-                    <ul class="storefront-footer__list">
-                        @foreach ($policyLinks as $link)
-                            <li><a href="{{ $link['url'] }}">{{ $link['label'] }}</a></li>
-                        @endforeach
-                    </ul>
-                </div>
             </div>
         </div>
     </div>
 
     <div class="storefront-footer__bottom">
         <div class="ds-container storefront-footer__bottom-inner">
-            <p>&copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.</p>
-            <p class="storefront-footer__bottom-meta">Secure checkout · Cash on delivery · Fast nationwide shipping</p>
+            <p>&copy; {{ date('Y') }} {{ $footer['copyright_name'] ?? $settings->displayName() }}. All rights reserved.</p>
+            @if (filled($footer['bottom_meta'] ?? null))
+                <p class="storefront-footer__bottom-meta">{{ $footer['bottom_meta'] }}</p>
+            @endif
         </div>
     </div>
 </footer>

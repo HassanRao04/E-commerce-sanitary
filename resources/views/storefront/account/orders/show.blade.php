@@ -23,6 +23,11 @@
                         <x-order-status-badge :status="$order->status" />
                         <a href="{{ route('shop.account.orders.track', $order) }}" class="ds-btn-secondary !text-sm">Track order</a>
                         <a href="{{ route('shop.account.orders.invoice', $order) }}" target="_blank" class="ds-btn-secondary !text-sm">Download invoice</a>
+                        @if ($reviewsEnabled && $orderReviewEligible && $reviewableItems->isNotEmpty())
+                            <a href="{{ route('shop.account.orders.review', $order) }}" class="ds-btn-primary !text-sm">Write review</a>
+                        @elseif ($reviewsEnabled && $orderReviewEligible && $order->items->contains(fn ($item) => $item->review))
+                            <span class="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700">Review submitted</span>
+                        @endif
                     </div>
                 </div>
 
@@ -82,21 +87,33 @@
                                     <th class="px-5 py-3 font-medium text-right">Qty</th>
                                     <th class="px-5 py-3 font-medium text-right">Unit price</th>
                                     <th class="px-5 py-3 font-medium text-right">Total</th>
+                                    @if ($reviewsEnabled && $orderReviewEligible)
+                                        <th class="px-5 py-3 font-medium text-right">Review</th>
+                                    @endif
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-ink-100">
                                 @foreach ($order->items as $item)
                                     <tr>
                                         <td class="px-5 py-4">
-                                            <p class="font-medium">{{ $item->product_name }}</p>
-                                            @if ($item->variant_name)
-                                                <p class="text-ink-500">{{ $item->variant_name }}</p>
-                                            @endif
-                                        </td>
+                                    <p class="font-medium">{{ $item->product_name }}</p>
+                                    <x-storefront.variant-options :item="$item" class="text-ink-500 text-sm mt-1" />
+                                </td>
                                         <td class="px-5 py-4 text-ink-600">{{ $item->sku }}</td>
                                         <td class="px-5 py-4 text-right">{{ $item->quantity }}</td>
                                         <td class="px-5 py-4 text-right"><x-money :amount="$item->unit_price" /></td>
                                         <td class="px-5 py-4 text-right font-medium"><x-money :amount="$item->total" /></td>
+                                        @if ($reviewsEnabled && $orderReviewEligible)
+                                            <td class="px-5 py-4 text-right">
+                                                @if ($item->review)
+                                                    <span class="text-xs font-medium text-emerald-700">Review submitted</span>
+                                                @elseif ($item->product_id && $reviewableItems->contains('id', $item->id))
+                                                    <a href="{{ route('shop.account.orders.review.create', [$order, $item]) }}" class="ds-btn-primary !px-2 !py-1 !text-xs">Write review</a>
+                                                @else
+                                                    <span class="text-xs text-ink-400">—</span>
+                                                @endif
+                                            </td>
+                                        @endif
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -109,8 +126,14 @@
                                 <div class="flex justify-between text-success"><dt>Discount</dt><dd>- <x-money :amount="$order->discount_total" /></dd></div>
                             @endif
                             <div class="flex justify-between"><dt class="text-ink-500">Shipping</dt><dd><x-money :amount="$order->shipping_total" /></dd></div>
+                            @if ($order->service_charge_total > 0)
+                                <div class="flex justify-between"><dt class="text-ink-500">Service charge</dt><dd><x-money :amount="$order->service_charge_total" /></dd></div>
+                            @endif
+                            @if ($order->handling_charge_total > 0)
+                                <div class="flex justify-between"><dt class="text-ink-500">Handling charge</dt><dd><x-money :amount="$order->handling_charge_total" /></dd></div>
+                            @endif
                             @if ($order->tax_total > 0)
-                                <div class="flex justify-between"><dt class="text-ink-500">{{ config('shop.tax_label', 'Tax') }}</dt><dd><x-money :amount="$order->tax_total" /></dd></div>
+                                <div class="flex justify-between"><dt class="text-ink-500">{{ $order->tax_label }}</dt><dd><x-money :amount="$order->tax_total" /></dd></div>
                             @endif
                             <div class="flex justify-between font-semibold text-base pt-2 border-t border-ink-100"><dt>Grand total</dt><dd><x-money :amount="$order->grand_total" /></dd></div>
                         </dl>

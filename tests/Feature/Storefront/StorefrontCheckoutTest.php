@@ -4,9 +4,15 @@ namespace Tests\Feature\Storefront;
 
 use App\Enums\PaymentMethod;
 use App\Models\Coupon;
+use App\Models\Inventory;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ShippingSetting;
+use App\Models\TaxChargeSetting;
 use App\Models\User;
+use App\Models\Warehouse;
+use App\Services\ShippingSettingsService;
+use App\Services\TaxChargeSettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -35,7 +41,9 @@ class StorefrontCheckoutTest extends TestCase
             ->assertSee('Flexible payment options')
             ->assertSee('Unlock exclusive offers')
             ->assertSee('Newsletter')
-            ->assertSee('Shipping policy');
+            ->assertSee('Shipping policy')
+            ->assertSee('Shop by category')
+            ->assertSee('Basins & Sinks');
     }
 
     public function test_guest_can_subscribe_to_newsletter(): void
@@ -102,7 +110,20 @@ class StorefrontCheckoutTest extends TestCase
         $customer->assignRole('customer');
         $product = Product::query()->active()->with('defaultVariant')->first();
         $variant = $product->defaultVariant;
-        $initialStock = $variant->stock_quantity;
+        $warehouse = Warehouse::query()->where('is_default', true)->first();
+        $inventory = $warehouse
+            ? Inventory::query()
+                ->where('warehouse_id', $warehouse->id)
+                ->where('product_variant_id', $variant->id)
+                ->first()
+            : null;
+        $initialInventory = $inventory?->quantity_on_hand ?? $variant->stock_quantity;
+        $initialAggregateStock = (int) Inventory::query()
+            ->where('product_variant_id', $variant->id)
+            ->sum('quantity_on_hand');
+        if ($initialAggregateStock === 0) {
+            $initialAggregateStock = $variant->stock_quantity;
+        }
 
         $this->actingAs($customer)
             ->post(route('shop.cart.store'), [
@@ -139,7 +160,11 @@ class StorefrontCheckoutTest extends TestCase
             'product_id' => $product->id,
         ]);
 
-        $this->assertEquals($initialStock - 1, $variant->fresh()->stock_quantity);
+        if ($inventory) {
+            $this->assertEquals($initialInventory - 1, $inventory->fresh()->quantity_on_hand);
+        }
+
+        $this->assertEquals($initialAggregateStock - 1, $variant->fresh()->stock_quantity);
     }
 
     public function test_guest_can_apply_coupon_to_cart(): void
@@ -249,11 +274,23 @@ class StorefrontCheckoutTest extends TestCase
 
     public function test_checkout_calculates_tax_shipping_and_coupon(): void
     {
-        config([
-            'shop.tax_rate' => 17,
-            'shop.shipping_flat_rate' => 500,
-            'shop.free_shipping_threshold' => 999999,
+        TaxChargeSetting::current()->update([
+            'gst_enabled' => true,
+            'gst_rate' => 17,
+            'default_tax_type' => 'gst',
+            'service_charge_enabled' => false,
+            'handling_charge_enabled' => false,
         ]);
+        app(TaxChargeSettingsService::class)->clearCache();
+
+        ShippingSetting::current()->update([
+            'flat_rate_enabled' => true,
+            'flat_rate_amount' => 500,
+            'free_shipping_enabled' => true,
+            'free_shipping_threshold' => 999999,
+            'default_method' => 'flat',
+        ]);
+        app(ShippingSettingsService::class)->clearCache();
 
         $customer = User::factory()->create();
         $customer->assignRole('customer');

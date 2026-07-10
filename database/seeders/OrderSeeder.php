@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Enums\AddressType;
-use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\ShipmentStatus;
@@ -15,7 +14,6 @@ use App\Models\OrderStatusHistory;
 use App\Models\ProductVariant;
 use App\Models\Shipping;
 use App\Models\Tracking;
-use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -43,9 +41,9 @@ class OrderSeeder extends Seeder
         );
 
         $orders = [
-            ['status' => OrderStatus::Pending, 'payment' => PaymentStatus::Pending, 'number' => 'ORD-'.now()->format('Ymd').'-0001'],
-            ['status' => OrderStatus::Processing, 'payment' => PaymentStatus::Paid, 'number' => 'ORD-'.now()->format('Ymd').'-0002'],
-            ['status' => OrderStatus::Shipped, 'payment' => PaymentStatus::Paid, 'number' => 'ORD-'.now()->format('Ymd').'-0003', 'ship' => true],
+            ['status' => 'pending', 'payment' => PaymentStatus::Pending, 'number' => 'ORD-'.now()->format('Ymd').'-0001'],
+            ['status' => 'processing', 'payment' => PaymentStatus::Paid, 'number' => 'ORD-'.now()->format('Ymd').'-0002'],
+            ['status' => 'shipped', 'payment' => PaymentStatus::Paid, 'number' => 'ORD-'.now()->format('Ymd').'-0003', 'ship' => true],
         ];
 
         foreach ($orders as $index => $data) {
@@ -88,7 +86,7 @@ class OrderSeeder extends Seeder
             );
 
             OrderStatusHistory::firstOrCreate(
-                ['order_id' => $order->id, 'status' => $data['status']->value],
+                ['order_id' => $order->id, 'status' => $data['status']],
                 ['note' => 'Seeded order status']
             );
 

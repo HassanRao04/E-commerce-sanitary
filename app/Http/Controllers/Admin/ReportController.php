@@ -22,7 +22,7 @@ class ReportController extends Controller
         abort_unless(auth()->user()?->can('reports.view'), 403);
 
         return view('admin.reports.index', [
-            'types' => $this->reportService->types()->groupBy('group'),
+            'groups' => $this->reportService->groupedTypes(),
             'widgets' => $this->reportService->dashboardWidgets(),
         ]);
     }

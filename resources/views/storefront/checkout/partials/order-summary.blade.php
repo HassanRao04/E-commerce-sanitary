@@ -17,9 +17,7 @@
                     <img src="{{ $item->product->primary_image_url }}" alt="" loading="lazy">
                     <div class="order-summary__item-body">
                         <p class="order-summary__item-name">{{ $item->product->name }}</p>
-                        @if ($item->productVariant?->variant_name)
-                            <p class="order-summary__item-meta">{{ $item->productVariant->variant_name }}</p>
-                        @endif
+                        <x-storefront.variant-options :item="$item" class="order-summary__item-meta" />
                         <p class="order-summary__item-meta">Qty {{ $item->quantity }} × <x-money :amount="$item->unit_price" /></p>
                     </div>
                     <span class="order-summary__item-price"><x-money :amount="$item->unit_price * $item->quantity" /></span>
@@ -86,10 +84,24 @@
             </p>
         @endif
 
+        @if (($totals['service_charge'] ?? 0) > 0)
+            <div class="order-summary__row">
+                <dt>Service charge</dt>
+                <dd data-total-service-charge><x-money :amount="$totals['service_charge']" /></dd>
+            </div>
+        @endif
+
+        @if (($totals['handling_charge'] ?? 0) > 0)
+            <div class="order-summary__row">
+                <dt>Handling charge</dt>
+                <dd data-total-handling-charge><x-money :amount="$totals['handling_charge']" /></dd>
+            </div>
+        @endif
+
         @if ($totals['tax'] > 0)
             <div class="order-summary__row">
                 <dt>
-                    {{ config('shop.tax_label', 'Tax') }}
+                    {{ $pricing['tax_label'] ?? 'Tax' }}
                     @if (! empty($pricing['tax_rate']))
                         ({{ rtrim(rtrim(number_format($pricing['tax_rate'], 2), '0'), '.') }}%)
                     @endif

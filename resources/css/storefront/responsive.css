@@ -1,5 +1,5 @@
 /* Storefront responsive & touch UX */
-.ds-root img,
+.ds-root img:not(.storefront-site-logo__image),
 .ds-root video {
     max-width: 100%;
     height: auto;

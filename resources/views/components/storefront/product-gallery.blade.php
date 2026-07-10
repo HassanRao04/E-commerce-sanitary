@@ -1,14 +1,24 @@
-@props(['product'])
+@props([
+    'product',
+    'selector' => null,
+])
 
 @php
-    $images = $product->images->sortByDesc('is_primary')->sortBy('sort_order')->values();
-    $fallbackImage = $product->primary_image_url;
-    $galleryImages = $images->isNotEmpty()
-        ? $images->map(fn ($image) => ['url' => $image->url, 'alt' => $image->alt_text ?: $product->name])->values()->all()
-        : [['url' => $fallbackImage, 'alt' => $product->name]];
+    use App\Support\ProductVariantSelector;
+
+    $selector ??= ProductVariantSelector::forProduct($product);
+    $gallery = $selector['gallery'];
 @endphp
 
-<div class="product-gallery" x-data="productGallery(@js($galleryImages))">
+<div
+    class="product-gallery"
+    x-data="productGallery(@js([
+        'initialImages' => $gallery['initialImages'],
+        'fallbackImages' => $gallery['fallbackImages'],
+        'imagesByVariant' => $gallery['imagesByVariant'],
+        'defaultVariantId' => $gallery['defaultVariantId'],
+    ]))"
+>
     <div class="product-gallery__stage">
         <div
             class="product-gallery__main"
@@ -21,6 +31,7 @@
                 :src="activeImage.url"
                 :alt="activeImage.alt"
                 class="product-gallery__hero"
+                :class="{ 'is-switching': isSwitching }"
                 x-ref="heroImage"
             >
             <div
@@ -34,22 +45,20 @@
             </button>
         </div>
 
-        @if (count($galleryImages) > 1)
-            <div class="product-gallery__thumbs" role="tablist" aria-label="Product images">
-                <template x-for="(image, index) in images" :key="index">
-                    <button
-                        type="button"
-                        class="product-gallery__thumb"
-                        :class="{ 'is-active': activeIndex === index }"
-                        @click="setImage(index)"
-                        :aria-selected="(activeIndex === index).toString()"
-                        :aria-label="`Show image ${index + 1}`"
-                    >
-                        <img :src="image.url" :alt="image.alt" loading="lazy">
-                    </button>
-                </template>
-            </div>
-        @endif
+        <div class="product-gallery__thumbs" role="tablist" aria-label="Product images" x-show="images.length > 1" x-cloak>
+            <template x-for="(image, index) in images" :key="`${currentVariantId ?? 'default'}-${index}`">
+                <button
+                    type="button"
+                    class="product-gallery__thumb"
+                    :class="{ 'is-active': activeIndex === index }"
+                    @click="setImage(index)"
+                    :aria-selected="(activeIndex === index).toString()"
+                    :aria-label="`Show image ${index + 1}`"
+                >
+                    <img :src="image.url" :alt="image.alt" loading="lazy">
+                </button>
+            </template>
+        </div>
     </div>
 
     <div

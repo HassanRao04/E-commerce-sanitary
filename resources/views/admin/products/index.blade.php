@@ -65,10 +65,18 @@
                         <td class="px-4 py-3 font-mono text-gray-600">{{ $product->base_sku }}</td>
                         <td class="px-4 py-3 capitalize text-gray-600">{{ $product->product_type ?? 'simple' }}</td>
                         <td class="px-4 py-3 text-gray-600">
-                            {{ config('shop.currency_symbol') }} {{ number_format($variant?->price ?? 0, 2) }}
-                            @if ($variant?->sale_price)
-                                <span class="text-xs text-green-600">Sale {{ config('shop.currency_symbol') }}{{ number_format($variant->sale_price, 2) }}</span>
-                            @endif
+                            <div class="space-y-1">
+                                <div>Base {{ config('shop.currency_symbol') }}{{ number_format($variant?->price ?? 0, 2) }}</div>
+                                @if ($variant?->sale_price)
+                                    <div class="text-xs text-green-600">Sale {{ config('shop.currency_symbol') }}{{ number_format($variant->sale_price, 2) }}</div>
+                                @endif
+                                @if ($variant?->wholesale_price)
+                                    <div class="text-xs text-blue-600">Wholesale {{ config('shop.currency_symbol') }}{{ number_format($variant->wholesale_price, 2) }}</div>
+                                @endif
+                                @if ($variant?->dealer_price)
+                                    <div class="text-xs text-indigo-600">Dealer {{ config('shop.currency_symbol') }}{{ number_format($variant->dealer_price, 2) }}</div>
+                                @endif
+                            </div>
                         </td>
                         <td class="px-4 py-3">
                             <span class="{{ $totalStock <= config('shop.low_stock_threshold') ? 'text-amber-600 font-medium' : 'text-gray-600' }}">

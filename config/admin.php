@@ -86,6 +86,13 @@ return [
                     'active' => 'admin.orders.*',
                 ],
                 [
+                    'label' => 'Order Workflow',
+                    'route' => 'admin.orders.workflow.index',
+                    'permission' => 'orders.workflow.view',
+                    'icon' => 'cog-6-tooth',
+                    'active' => 'admin.orders.workflow.*',
+                ],
+                [
                     'label' => 'Invoices',
                     'route' => 'admin.invoices.index',
                     'permission' => 'billing.view',
@@ -100,17 +107,52 @@ return [
                     'active' => 'admin.payments.*',
                 ],
                 [
+                    'label' => 'Checkout Rules',
+                    'route' => 'admin.checkout.rules.edit',
+                    'permission' => 'checkout_rules.view',
+                    'icon' => 'cog',
+                    'active' => 'admin.checkout.rules.*',
+                ],
+                [
                     'label' => 'Coupons',
                     'route' => 'admin.coupons.index',
                     'permission' => 'coupons.view',
                     'icon' => 'ticket',
                     'active' => 'admin.coupons.*',
                 ],
+                [
+                    'label' => 'Shipments',
+                    'route' => 'admin.shipping.index',
+                    'permission' => 'shipping.view',
+                    'icon' => 'truck',
+                    'active' => 'admin.shipping.index',
+                ],
+                [
+                    'label' => 'Shipping Settings',
+                    'route' => 'admin.shipping.settings.edit',
+                    'permission' => 'shipping.view',
+                    'icon' => 'cog-6-tooth',
+                    'active' => 'admin.shipping.settings.*',
+                ],
+                [
+                    'label' => 'Tax & Charges',
+                    'route' => 'admin.tax.settings.edit',
+                    'permission' => 'tax.view',
+                    'icon' => 'cog',
+                    'active' => 'admin.tax.settings.*',
+                ],
             ],
         ],
         [
             'section' => 'Engagement',
             'items' => [
+                [
+                    'label' => 'Website Content',
+                    'route' => 'admin.homepage.index',
+                    'permission' => 'homepage.view',
+                    'icon' => 'photo',
+                    'active' => 'admin.homepage.*',
+                ],
                 [
                     'label' => 'Reviews',
                     'route' => 'admin.reviews.index',
@@ -124,7 +166,7 @@ return [
             'section' => 'Insights',
             'items' => [
                 [
-                    'label' => 'Reports',
+                    'label' => 'Reporting',
                     'route' => 'admin.reports.index',
                     'permission' => 'reports.view',
                     'icon' => 'chart-bar',
@@ -135,6 +177,13 @@ return [
         [
             'section' => 'System',
             'items' => [
+                [
+                    'label' => 'Activity Log',
+                    'route' => 'admin.activity.index',
+                    'permission' => 'activity.view',
+                    'icon' => 'document-text',
+                    'active' => 'admin.activity.*',
+                ],
                 [
                     'label' => 'Settings',
                     'route' => 'admin.settings.index',
@@ -160,7 +209,7 @@ return [
             'view' => ['super-admin', 'admin', 'manager', 'inventory-staff', 'sales-staff', 'content-manager'],
         ],
         'users' => [
-            'view' => ['super-admin', 'admin'],
+            'view' => ['super-admin', 'admin', 'manager'],
             'create' => ['super-admin', 'admin'],
             'update' => ['super-admin', 'admin'],
             'delete' => ['super-admin'],
@@ -191,6 +240,8 @@ return [
             'view' => ['super-admin', 'admin', 'manager', 'inventory-staff', 'sales-staff'],
             'update' => ['super-admin', 'admin', 'manager', 'sales-staff'],
             'cancel' => ['super-admin', 'admin', 'manager'],
+            'workflow.view' => ['super-admin', 'admin', 'manager', 'sales-staff'],
+            'workflow.manage' => ['super-admin', 'admin', 'manager'],
         ],
         'billing' => [
             'view' => ['super-admin', 'admin', 'manager', 'sales-staff'],
@@ -204,6 +255,18 @@ return [
             'view' => ['super-admin', 'admin', 'manager', 'sales-staff'],
             'manage' => ['super-admin', 'admin', 'manager'],
         ],
+        'checkout_rules' => [
+            'view' => ['super-admin', 'admin', 'manager', 'sales-staff'],
+            'manage' => ['super-admin', 'admin', 'manager'],
+        ],
+        'shipping' => [
+            'view' => ['super-admin', 'admin', 'manager', 'inventory-staff', 'sales-staff'],
+            'manage' => ['super-admin', 'admin', 'manager', 'inventory-staff'],
+        ],
+        'tax' => [
+            'view' => ['super-admin', 'admin', 'manager', 'sales-staff'],
+            'manage' => ['super-admin', 'admin', 'manager'],
+        ],
         'reviews' => [
             'view' => ['super-admin', 'admin', 'manager', 'content-manager'],
             'moderate' => ['super-admin', 'admin', 'manager', 'content-manager'],
@@ -214,6 +277,13 @@ return [
         'settings' => [
             'view' => ['super-admin', 'admin', 'content-manager'],
             'manage' => ['super-admin', 'admin'],
+        ],
+        'homepage' => [
+            'view' => ['super-admin', 'admin', 'manager', 'content-manager'],
+            'manage' => ['super-admin', 'admin', 'content-manager'],
+        ],
+        'activity' => [
+            'view' => ['super-admin', 'admin'],
         ],
     ],
 

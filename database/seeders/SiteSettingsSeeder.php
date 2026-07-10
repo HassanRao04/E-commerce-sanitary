@@ -19,12 +19,15 @@ class SiteSettingsSeeder extends Seeder
                 'address' => 'Karachi, Pakistan',
                 'default_meta_description' => 'Premium sanitary ware and bathroom fittings.',
                 'currency' => config('shop.currency'),
-                'tax_rate' => config('shop.tax_rate'),
+                'tax_rate' => 0,
                 'shipping_flat_rate' => config('shop.shipping_flat_rate'),
                 'social_links' => [
                     'facebook' => null,
                     'instagram' => null,
                     'youtube' => null,
+                    'twitter' => null,
+                    'linkedin' => null,
+                    'tiktok' => null,
                 ],
             ]
         );

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Services\OrderWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -11,11 +12,14 @@ class OrderResource extends JsonResource
     /** @return array<string, mixed> */
     public function toArray(Request $request): array
     {
+        $workflow = app(OrderWorkflowService::class);
+
         return [
             'id' => $this->id,
             'order_number' => $this->order_number,
             'tracking_token' => $this->tracking_token,
-            'status' => $this->status?->value,
+            'status' => $this->status,
+            'status_label' => $workflow->label($this->status),
             'payment_status' => $this->payment_status?->value,
             'payment_method' => $this->payment_method?->value,
             'subtotal' => (float) $this->subtotal,

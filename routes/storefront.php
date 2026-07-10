@@ -13,6 +13,7 @@ use App\Http\Controllers\Storefront\PageController;
 use App\Http\Controllers\Storefront\PaymentController;
 use App\Http\Controllers\Storefront\ProductController;
 use App\Http\Controllers\Storefront\WishlistController;
+use App\Models\Category;
 use Illuminate\Support\Facades\Route;
 
 Route::name('shop.')->group(function (): void {
@@ -21,7 +22,8 @@ Route::name('shop.')->group(function (): void {
     Route::get('/shop', [ProductController::class, 'index'])->name('products.index');
     Route::get('/products', fn () => redirect()->route('shop.products.index', request()->query(), 301));
     Route::get('/products/{product:slug}', [ProductController::class, 'show'])->name('products.show');
-    Route::get('/categories/{category:slug}', [CategoryController::class, 'show'])->name('categories.show');
+    Route::get('/shop/category/{category:slug}', [CategoryController::class, 'show'])->name('categories.show');
+    Route::get('/categories/{category:slug}', fn (Category $category) => redirect()->route('shop.categories.show', $category, 301));
 
     Route::get('/about', [PageController::class, 'about'])->name('about');
     Route::get('/contact', [PageController::class, 'contact'])->name('contact');
@@ -42,6 +44,9 @@ Route::name('shop.')->group(function (): void {
         Route::get('/orders/{order}', [AccountController::class, 'orderShow'])->name('orders.show');
         Route::get('/orders/{order}/track', [AccountController::class, 'orderTrack'])->name('orders.track');
         Route::get('/orders/{order}/invoice', [AccountController::class, 'downloadInvoice'])->name('orders.invoice');
+        Route::get('/orders/{order}/review', [AccountController::class, 'orderReviewHub'])->name('orders.review');
+        Route::get('/orders/{order}/items/{orderItem}/review', [AccountController::class, 'createReview'])->name('orders.review.create');
+        Route::post('/orders/{order}/items/{orderItem}/review', [AccountController::class, 'storeReview'])->name('orders.review.store');
 
         Route::get('/addresses', [AccountAddressController::class, 'index'])->name('addresses.index');
         Route::get('/addresses/create', [AccountAddressController::class, 'create'])->name('addresses.create');

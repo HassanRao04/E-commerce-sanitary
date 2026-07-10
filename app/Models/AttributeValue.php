@@ -11,6 +11,7 @@ class AttributeValue extends Model
         'attribute_id',
         'value',
         'slug',
+        'color_hex',
         'sort_order',
     ];
 
@@ -24,5 +25,10 @@ class AttributeValue extends Model
     public function attribute(): BelongsTo
     {
         return $this->belongsTo(Attribute::class);
+    }
+
+    public function isColorValue(): bool
+    {
+        return $this->color_hex !== null;
     }
 }

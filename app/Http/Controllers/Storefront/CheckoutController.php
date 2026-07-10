@@ -37,7 +37,7 @@ class CheckoutController extends Controller
 
         return view('storefront.checkout.index', [
             'cart' => $cart,
-            'totals' => collect($pricing)->only(['subtotal', 'discount', 'shipping', 'tax', 'grand_total'])->all(),
+            'totals' => collect($pricing)->only(['subtotal', 'discount', 'shipping', 'service_charge', 'handling_charge', 'tax', 'grand_total'])->all(),
             'pricing' => $pricing,
             'paymentMethods' => $paymentMethods,
             'shippingAddresses' => $addresses,

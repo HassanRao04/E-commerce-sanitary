@@ -4,11 +4,15 @@
 ])
 
 @php
+    use App\Services\InventoryControlService;
+    use App\Services\ProductPricingService;
+
     $variant = $product->defaultVariant;
-    $price = $variant?->price;
-    $salePrice = $variant?->sale_price;
-    $onSale = $salePrice && $price && (float) $salePrice < (float) $price;
-    $discount = $onSale ? (int) round((1 - (float) $salePrice / (float) $price) * 100) : 0;
+    $pricing = $variant ? app(ProductPricingService::class)->forVariant($variant) : null;
+    $inventorySnapshot = $variant ? app(InventoryControlService::class)->snapshot($variant) : null;
+    $discount = ($pricing['on_sale'] ?? false) && ($pricing['compare_price'] ?? 0) > 0
+        ? (int) round((1 - $pricing['display_price'] / $pricing['compare_price']) * 100)
+        : 0;
     $rating = round((float) ($product->average_rating ?? 0), 1);
     $reviewCount = (int) ($product->reviews_count ?? 0);
     $sku = $variant?->sku ?? $product->base_sku;
@@ -23,11 +27,11 @@
     $secondaryImageUrl = $secondaryImage?->url;
     $hasSecondaryImage = filled($secondaryImageUrl) && $secondaryImageUrl !== $primaryImageUrl;
 
-    $stockQty = (int) ($variant?->stock_quantity ?? 0);
-    $lowThreshold = (int) config('shop.low_stock_threshold', 5);
-    $stockStatus = match (true) {
-        $stockQty <= 0 => ['label' => 'Out of stock', 'badge' => 'ds-badge-danger'],
-        $stockQty <= $lowThreshold => ['label' => 'Low stock', 'badge' => 'ds-badge-warning'],
+    $stockQty = (int) ($inventorySnapshot['available'] ?? 0);
+    $lowThreshold = (int) ($inventorySnapshot['low_stock_threshold'] ?? config('shop.low_stock_threshold', 5));
+    $stockStatus = match ($inventorySnapshot['status'] ?? 'out_of_stock') {
+        'out_of_stock' => ['label' => 'Out of stock', 'badge' => 'ds-badge-danger'],
+        'low_stock' => ['label' => 'Low stock', 'badge' => 'ds-badge-warning'],
         default => ['label' => 'In stock', 'badge' => 'ds-badge-success'],
     };
 
@@ -39,9 +43,11 @@
         'name' => $product->name,
         'url' => route('shop.products.show', $product),
         'image' => $primaryImageUrl,
-        'price' => $variant ? (string) $variant->effective_price : null,
-        'priceFormatted' => $variant ? config('shop.currency_symbol').' '.number_format((float) $variant->effective_price, 2) : null,
-        'comparePriceFormatted' => $onSale ? config('shop.currency_symbol').' '.number_format((float) $price, 2) : null,
+        'price' => $pricing ? (string) $pricing['display_price'] : null,
+        'priceFormatted' => $pricing ? app(ProductPricingService::class)->format($pricing['display_price']) : null,
+        'comparePriceFormatted' => ($pricing['compare_price'] ?? null) !== null
+            ? app(ProductPricingService::class)->format($pricing['compare_price'])
+            : null,
         'sku' => $sku,
         'stockLabel' => $stockStatus['label'],
         'rating' => $rating,
@@ -82,7 +88,7 @@
         </div>
 
         <div class="product-card__badges">
-            @if ($onSale && $discount > 0)
+            @if (($pricing['on_sale'] ?? false) && $discount > 0)
                 <span class="ds-badge-sale">−{{ $discount }}%</span>
             @endif
             @if ($product->is_new_arrival)
@@ -150,14 +156,14 @@
             <x-storefront.star-rating :rating="$rating" :count="$reviewCount" />
         </div>
 
-        @if ($variant)
+        @if ($variant && $pricing)
             <div class="product-card__price-row mt-2">
                 <span class="text-ink font-semibold">
-                    <x-money :amount="$variant->effective_price" />
+                    <x-money :amount="$pricing['display_price']" />
                 </span>
-                @if ($onSale)
+                @if ($pricing['compare_price'])
                     <span class="product-card__compare-price">
-                        <x-money :amount="$price" />
+                        <x-money :amount="$pricing['compare_price']" />
                     </span>
                 @endif
             </div>

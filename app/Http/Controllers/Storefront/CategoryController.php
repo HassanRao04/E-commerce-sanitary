@@ -19,10 +19,12 @@ class CategoryController extends Controller
 
     public function show(Category $category, Request $request): View|JsonResponse
     {
+        abort_unless($category->is_active, 404);
+
         $query = $this->catalog->baseQuery()
             ->whereHas('categories', fn ($q) => $q->where('categories.id', $category->id));
 
-        $query = $this->catalog->applyFilters($query, $request->except('category'));
+        $query = $this->catalog->applyFilters($query, $request);
         $products = $this->catalog->paginate($query, $request);
         ['brands' => $brands, 'categories' => $categories] = $this->catalog->filterOptions();
         $priceRange = $this->catalog->priceRange();

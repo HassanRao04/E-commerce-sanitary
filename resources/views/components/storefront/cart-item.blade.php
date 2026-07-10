@@ -9,9 +9,7 @@
         <div class="cart-item__header">
             <div class="min-w-0">
                 <a href="{{ route('shop.products.show', $item->product) }}" class="cart-item__title">{{ $item->product->name }}</a>
-                @if ($item->productVariant?->variant_name)
-                    <p class="cart-item__variant">{{ $item->productVariant->variant_name }}</p>
-                @endif
+                <x-storefront.variant-options :item="$item" class="cart-item__variant" />
                 <p class="cart-item__unit-price"><x-money :amount="$item->unit_price" /> each</p>
             </div>
 

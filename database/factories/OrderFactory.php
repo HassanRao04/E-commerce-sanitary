@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
@@ -18,8 +17,8 @@ class OrderFactory extends Factory
     public function definition(): array
     {
         $subtotal = fake()->randomFloat(2, 1000, 50000);
-        $shipping = (float) config('shop.shipping_flat_rate', 500);
-        $tax = round($subtotal * ((float) config('shop.tax_rate', 0) / 100), 2);
+        $shipping = 500.0;
+        $tax = round($subtotal * 0.17, 2);
 
         return [
             'order_number' => 'ORD-'.now()->format('ymd').'-'.Str::upper(Str::random(6)),
@@ -28,7 +27,7 @@ class OrderFactory extends Factory
             'customer_name' => fake()->name(),
             'customer_email' => fake()->safeEmail(),
             'customer_phone' => '+92-300-'.fake()->numerify('#######'),
-            'status' => OrderStatus::Pending,
+            'status' => 'pending',
             'payment_status' => PaymentStatus::Pending,
             'payment_method' => PaymentMethod::Cod,
             'subtotal' => $subtotal,
@@ -43,7 +42,7 @@ class OrderFactory extends Factory
     {
         return $this->state(fn (): array => [
             'payment_status' => PaymentStatus::Paid,
-            'status' => OrderStatus::Confirmed,
+            'status' => 'confirmed',
         ]);
     }
 

@@ -33,6 +33,16 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
+    z-index: 1;
+}
+
+.hero-swiper__overlay--photo {
+    background: linear-gradient(
+        to right,
+        rgb(11 11 15 / 0.9) 0%,
+        rgb(11 11 15 / 0.72) 42%,
+        rgb(11 11 15 / 0.35) 100%
+    ) !important;
 }
 
 .hero-swiper__orb {
@@ -130,7 +140,7 @@
     }
 
     .hero-swiper__pagination .swiper-pagination-bullet-active {
-        background: white;
+        background: black;
         transform: scale(1.15);
     }
 }

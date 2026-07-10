@@ -3,14 +3,18 @@
 @section('title', 'Orders')
 
 @section('content')
+    @php
+        $statuses = app(\App\Services\OrderWorkflowService::class)->active();
+    @endphp
+
     @include('admin.partials.page-header', ['title' => 'Orders'])
 
     <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-        @foreach (\App\Enums\OrderStatus::cases() as $status)
-            @php $count = $statusCounts[$status->value] ?? 0; @endphp
-            <a href="{{ route('admin.orders.index', ['status' => $status->value]) }}"
-               class="rounded-lg border bg-white p-3 hover:border-indigo-300 {{ request('status') === $status->value ? 'ring-2 ring-indigo-500 border-indigo-300' : 'border-gray-200' }}">
-                <p class="text-xs text-gray-500">{{ str($status->value)->headline()->replace('_', ' ') }}</p>
+        @foreach ($statuses as $status)
+            @php $count = $statusCounts[$status->slug] ?? 0; @endphp
+            <a href="{{ route('admin.orders.index', ['status' => $status->slug]) }}"
+               class="rounded-lg border bg-white p-3 hover:border-indigo-300 {{ request('status') === $status->slug ? 'ring-2 ring-indigo-500 border-indigo-300' : 'border-gray-200' }}">
+                <p class="text-xs text-gray-500">{{ $status->name }}</p>
                 <p class="text-xl font-semibold mt-1">{{ number_format($count) }}</p>
             </a>
         @endforeach
@@ -22,8 +26,8 @@
                 class="md:col-span-2 rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500">
             <select name="status" class="rounded-md border-gray-300 shadow-sm">
                 <option value="">All order statuses</option>
-                @foreach (\App\Enums\OrderStatus::cases() as $status)
-                    <option value="{{ $status->value }}" @selected(request('status') === $status->value)>{{ str($status->value)->headline()->replace('_', ' ') }}</option>
+                @foreach ($statuses as $status)
+                    <option value="{{ $status->slug }}" @selected(request('status') === $status->slug)>{{ $status->name }}</option>
                 @endforeach
             </select>
             <select name="payment_status" class="rounded-md border-gray-300 shadow-sm">

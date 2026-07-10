@@ -2,21 +2,30 @@
 
 namespace App\Services\Admin;
 
-use App\Enums\OrderStatus;
 use App\Models\Notification;
 use App\Models\Order;
+use App\Models\OrderStatus;
 use App\Models\User;
-use Illuminate\Support\Str;
+use App\Services\OrderWorkflowService;
 
 class OrderNotificationService
 {
-    public function notifyStatusChange(Order $order, OrderStatus $previous, OrderStatus $current, ?string $note = null): void
-    {
+    public function __construct(
+        private readonly OrderWorkflowService $workflow,
+    ) {}
+
+    public function notifyStatusChange(
+        Order $order,
+        ?string $previous,
+        string $current,
+        ?string $note = null,
+        ?OrderStatus $definition = null,
+    ): void {
         if ($order->user_id) {
-            $this->createUserNotification($order, $previous, $current, $note);
+            $this->createUserNotification($order, $previous, $current, $note, $definition);
         }
 
-        $this->notifyStaff($order, $previous, $current, $note);
+        $this->notifyStaff($order, $previous, $current, $note, $definition);
     }
 
     public function notifyShipmentUpdate(Order $order, string $courier, ?string $trackingNumber): void
@@ -43,26 +52,35 @@ class OrderNotificationService
 
     private function createUserNotification(
         Order $order,
-        OrderStatus $previous,
-        OrderStatus $current,
+        ?string $previous,
+        string $current,
         ?string $note,
+        ?OrderStatus $definition,
     ): void {
+        $currentLabel = $definition?->name ?? $this->workflow->label($current);
+        $previousLabel = $this->workflow->label($previous);
+
         Notification::create([
             'user_id' => $order->user_id,
             'type' => 'order.status_updated',
-            'title' => 'Order '.$order->order_number.' is '.Str::headline($current->value),
-            'body' => $note ?: 'Your order status changed from '.Str::headline($previous->value).' to '.Str::headline($current->value).'.',
+            'title' => 'Order '.$order->order_number.' is '.$currentLabel,
+            'body' => $note ?: "Your order status changed from {$previousLabel} to {$currentLabel}.",
             'data' => [
                 'order_id' => $order->id,
                 'order_number' => $order->order_number,
-                'previous_status' => $previous->value,
-                'status' => $current->value,
+                'previous_status' => $previous,
+                'status' => $current,
             ],
         ]);
     }
 
-    private function notifyStaff(Order $order, OrderStatus $previous, OrderStatus $current, ?string $note): void
-    {
+    private function notifyStaff(
+        Order $order,
+        ?string $previous,
+        string $current,
+        ?string $note,
+        ?OrderStatus $definition,
+    ): void {
         $adminEmail = config('shop.admin_email');
 
         if (! $adminEmail) {
@@ -75,19 +93,24 @@ class OrderNotificationService
             return;
         }
 
-        if (in_array($current, [OrderStatus::Pending, OrderStatus::Confirmed], true) && $previous === $current) {
+        $pendingSlugs = $this->workflow->slugsForCustomerGroup('pending');
+
+        if (in_array($current, $pendingSlugs, true) && $previous === $current) {
             return;
         }
+
+        $currentLabel = $definition?->name ?? $this->workflow->label($current);
+        $previousLabel = $this->workflow->label($previous);
 
         Notification::create([
             'user_id' => $admin->id,
             'type' => 'admin.order_status_updated',
-            'title' => "Order {$order->order_number} → ".Str::headline($current->value),
-            'body' => $note ?: "Status changed from ".Str::headline($previous->value).' to '.Str::headline($current->value).'.',
+            'title' => "Order {$order->order_number} → {$currentLabel}",
+            'body' => $note ?: "Status changed from {$previousLabel} to {$currentLabel}.",
             'data' => [
                 'order_id' => $order->id,
                 'order_number' => $order->order_number,
-                'status' => $current->value,
+                'status' => $current,
             ],
         ]);
     }

@@ -1,29 +1,38 @@
 @props(['order'])
 
 @php
-    use App\Enums\OrderStatus;
+    $workflow = app(\App\Services\OrderWorkflowService::class);
+    $steps = $workflow->progressSteps();
+    $currentSlug = (string) $order->status;
+    $currentDefinition = $workflow->find($currentSlug);
+    $isCancelled = $workflow->isCancelled($currentSlug);
+    $isReturned = $workflow->isReturned($currentSlug);
+    $stepSlugs = $steps->pluck('slug')->all();
+    $currentIndex = (! $isCancelled && ! $isReturned)
+        ? array_search($currentSlug, $stepSlugs, true)
+        : false;
 
-    $steps = [
-        OrderStatus::Pending,
-        OrderStatus::Confirmed,
-        OrderStatus::Processing,
-        OrderStatus::Packed,
-        OrderStatus::Shipped,
-        OrderStatus::OutForDelivery,
-        OrderStatus::Delivered,
-    ];
-
-    $currentStatus = $order->status instanceof OrderStatus
-        ? $order->status
-        : OrderStatus::from($order->status);
-
-    $isCancelled = $currentStatus === OrderStatus::Cancelled;
-    $currentIndex = $isCancelled ? -1 : array_search($currentStatus, $steps, true);
+    if ($currentIndex === false && $currentDefinition?->show_in_progress && $steps->isNotEmpty()) {
+        $currentIndex = $steps->search(fn ($step) => $step->sort_order > ($currentDefinition->sort_order ?? 0));
+        if ($currentIndex === false) {
+            $currentIndex = $steps->count() - 1;
+        } else {
+            $currentIndex = max(0, $currentIndex - 1);
+        }
+    }
 @endphp
 
 @if ($isCancelled)
     <div class="rounded-ds-lg border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-danger">
         This order was cancelled.
+    </div>
+@elseif ($isReturned)
+    <div class="rounded-ds-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+        This order was returned.
+    </div>
+@elseif ($steps->isEmpty())
+    <div class="rounded-ds-lg border border-ink-100 bg-surface-muted px-4 py-3 text-sm text-ink-600">
+        Current status: <strong>{{ $workflow->label($currentSlug) }}</strong>
     </div>
 @else
     <div class="order-progress">
@@ -53,7 +62,7 @@
                         'text-ink' => $completed || $active,
                         'text-ink-400' => ! $completed && ! $active,
                     ])>
-                        {{ str($step->value)->headline()->replace('_', ' ') }}
+                        {{ $step->name }}
                     </p>
                 </div>
                 @if (! $loop->last)
@@ -88,7 +97,7 @@
                             {{ $index + 1 }}
                         @endif
                     </div>
-                    <span class="text-sm font-medium text-ink">{{ str($step->value)->headline()->replace('_', ' ') }}</span>
+                    <span class="text-sm font-medium text-ink">{{ $step->name }}</span>
                 </div>
             @endforeach
         </div>

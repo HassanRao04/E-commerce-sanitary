@@ -13,6 +13,8 @@ class AdminUserSeeder extends Seeder
         $admin = User::updateOrCreate(
             ['email' => config('shop.admin_email')],
             [
+                'first_name' => 'Super',
+                'last_name' => 'Admin',
                 'name' => 'Super Admin',
                 'phone' => '+92-300-0000000',
                 'status' => 'active',

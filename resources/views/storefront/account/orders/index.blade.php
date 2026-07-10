@@ -49,6 +49,11 @@
                                                     <a href="{{ route('shop.account.orders.show', $order) }}" class="ds-btn-ghost !px-2 !py-1 !text-xs">View</a>
                                                     <a href="{{ route('shop.account.orders.track', $order) }}" class="ds-btn-ghost !px-2 !py-1 !text-xs">Track</a>
                                                     <a href="{{ route('shop.account.orders.invoice', $order) }}" target="_blank" class="ds-btn-ghost !px-2 !py-1 !text-xs">Invoice</a>
+                                                    @if ($reviewsEnabled && ($reviewStates[$order->id]['can_review'] ?? false))
+                                                        <a href="{{ route('shop.account.orders.review', $order) }}" class="ds-btn-primary !px-2 !py-1 !text-xs">Write review</a>
+                                                    @elseif ($reviewsEnabled && ($reviewStates[$order->id]['has_review'] ?? false))
+                                                        <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">Review submitted</span>
+                                                    @endif
                                                 </div>
                                             </td>
                                         </tr>

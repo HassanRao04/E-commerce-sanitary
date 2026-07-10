@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
-use App\Enums\OrderStatus;
-use App\Enums\PaymentMethod;
-use App\Enums\PaymentStatus;
+use App\Services\OrderWorkflowService;
 use Database\Factories\OrderFactory;
 use App\Models\Concerns\FormatsMoney;
+use App\Enums\PaymentMethod;
+use App\Enums\PaymentStatus;
+use App\Enums\TaxType;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -40,7 +41,10 @@ class Order extends Model
         'subtotal',
         'discount_total',
         'shipping_total',
+        'service_charge_total',
+        'handling_charge_total',
         'tax_total',
+        'tax_type',
         'grand_total',
         'coupon_code',
         'notes',
@@ -49,12 +53,13 @@ class Order extends Model
     protected function casts(): array
     {
         return [
-            'status' => OrderStatus::class,
             'payment_status' => PaymentStatus::class,
             'payment_method' => PaymentMethod::class,
             'subtotal' => 'decimal:2',
             'discount_total' => 'decimal:2',
             'shipping_total' => 'decimal:2',
+            'service_charge_total' => 'decimal:2',
+            'handling_charge_total' => 'decimal:2',
             'tax_total' => 'decimal:2',
             'grand_total' => 'decimal:2',
         ];
@@ -81,17 +86,33 @@ class Order extends Model
         );
     }
 
+    protected function taxLabel(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => filled($this->tax_type)
+                ? (TaxType::tryFrom($this->tax_type)?->label() ?? 'Tax')
+                : 'Tax',
+        );
+    }
+
+    protected function statusLabel(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => app(OrderWorkflowService::class)->label($this->status),
+        );
+    }
+
     protected function isCancelled(): Attribute
     {
         return Attribute::make(
-            get: fn (): bool => $this->status === OrderStatus::Cancelled,
+            get: fn (): bool => app(OrderWorkflowService::class)->isCancelled($this->status),
         );
     }
 
     protected function isCompleted(): Attribute
     {
         return Attribute::make(
-            get: fn (): bool => $this->status === OrderStatus::Delivered,
+            get: fn (): bool => app(OrderWorkflowService::class)->isDelivered($this->status),
         );
     }
 
@@ -134,7 +155,7 @@ class Order extends Model
     #[Scope]
     protected function pending(Builder $query): void
     {
-        $query->where('status', OrderStatus::Pending);
+        $query->where('status', app(OrderWorkflowService::class)->defaultSlug());
     }
 
     #[Scope]
@@ -150,7 +171,7 @@ class Order extends Model
     }
 
     #[Scope]
-    protected function withStatus(Builder $query, OrderStatus $status): void
+    protected function withStatus(Builder $query, string $status): void
     {
         $query->where('status', $status);
     }
@@ -193,6 +214,11 @@ class Order extends Model
     public function shippingAddress(): BelongsTo
     {
         return $this->belongsTo(Address::class, 'shipping_address_id');
+    }
+
+    public function orderStatus(): BelongsTo
+    {
+        return $this->belongsTo(OrderStatus::class, 'status', 'slug');
     }
 
     public function items(): HasMany

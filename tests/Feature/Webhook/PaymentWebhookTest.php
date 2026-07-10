@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Webhook;
 
-use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
@@ -56,7 +55,7 @@ class PaymentWebhookTest extends TestCase
     {
         $order = Order::factory()->create([
             'payment_method' => PaymentMethod::Stripe,
-            'status' => OrderStatus::Pending,
+            'status' => 'pending',
             'payment_status' => PaymentStatus::Pending,
         ]);
 

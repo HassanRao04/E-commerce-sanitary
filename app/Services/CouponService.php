@@ -10,10 +10,18 @@ class CouponService
 {
     public function __construct(
         private readonly CartService $cartService,
+        private readonly CheckoutRulesEngine $rulesEngine,
+        private readonly CheckoutRulesSettingsService $checkoutRulesSettings,
     ) {}
 
     public function apply(Cart $cart, string $code): Coupon
     {
+        if (! $this->checkoutRulesSettings->couponsEnabled()) {
+            throw ValidationException::withMessages([
+                'code' => 'Coupons are not available at this time.',
+            ]);
+        }
+
         $coupon = Coupon::query()->valid()->byCode($code)->first();
 
         if (! $coupon) {
@@ -23,10 +31,7 @@ class CouponService
         }
 
         $cart->load('items');
-        $subtotal = round($cart->items->sum(
-            fn ($item): float => (float) $item->unit_price * $item->quantity
-        ), 2);
-
+        $subtotal = $this->rulesEngine->cartSubtotal($cart);
         $discount = $coupon->calculateDiscount($subtotal);
 
         if ($discount <= 0) {

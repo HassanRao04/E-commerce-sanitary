@@ -21,4 +21,9 @@ class ReviewPolicy
     {
         return $user->can('reviews.moderate');
     }
+
+    public function delete(User $user, Review $review): bool
+    {
+        return $user->can('reviews.moderate');
+    }
 }

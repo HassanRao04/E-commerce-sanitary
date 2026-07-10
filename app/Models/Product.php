@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ProductStatus;
+use App\Services\ProductPricingService;
 use Database\Factories\ProductFactory;
 use App\Models\Concerns\GeneratesSlug;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -61,8 +62,13 @@ class Product extends Model
     {
         return Attribute::make(
             get: function (): string {
-                $image = $this->images()->where('is_primary', true)->first()
-                    ?? $this->images()->orderBy('sort_order')->first();
+                if ($this->relationLoaded('images')) {
+                    $image = $this->images->firstWhere('is_primary', true)
+                        ?? $this->images->sortBy('sort_order')->first();
+                } else {
+                    $image = $this->images()->where('is_primary', true)->first()
+                        ?? $this->images()->orderBy('sort_order')->first();
+                }
 
                 return $image?->url ?? route('media.placeholder');
             },
@@ -87,7 +93,19 @@ class Product extends Model
     protected function priceFrom(): Attribute
     {
         return Attribute::make(
-            get: fn (): ?float => $this->variants()->active()->min('price'),
+            get: function (): ?float {
+                $pricing = app(ProductPricingService::class);
+
+                $variants = $this->relationLoaded('variants')
+                    ? $this->variants->where('is_active', true)
+                    : $this->variants()->active()->get();
+
+                if ($variants->isEmpty()) {
+                    return null;
+                }
+
+                return $variants->min(fn (ProductVariant $variant): float => $pricing->displayPrice($variant));
+            },
         );
     }
 

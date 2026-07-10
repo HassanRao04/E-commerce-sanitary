@@ -3,14 +3,15 @@
 namespace App\Services;
 
 use App\Enums\AddressType;
-use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Enums\ProductStatus;
 use App\Models\Address;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderStatusHistory;
+use App\Support\VariantOptionFormatter;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -20,10 +21,13 @@ class CheckoutService
 {
     public function __construct(
         private readonly CartService $cartService,
-        private readonly CheckoutPricingService $pricing,
+        private readonly CheckoutRulesEngine $rulesEngine,
         private readonly PaymentService $paymentService,
         private readonly ActivityLogService $activityLog,
         private readonly OrderNumberService $orderNumberService,
+        private readonly InventoryStockService $inventoryStock,
+        private readonly StockAvailabilityService $stockAvailability,
+        private readonly OrderWorkflowService $workflow,
     ) {}
 
     public function placeOrder(Cart $cart, array $data): Order
@@ -38,8 +42,9 @@ class CheckoutService
             $cart = $cart->load(['items.product', 'items.productVariant', 'coupon']);
 
             $this->assertCartIsValid($cart);
+            $this->rulesEngine->validateForCheckout($cart);
 
-            $totals = $this->pricing->calculate($cart);
+            $totals = $this->rulesEngine->calculate($cart);
             $paymentMethod = PaymentMethod::from($data['payment_method']);
             $shippingAddress = $this->resolveShippingAddress($data);
             $billingAddress = $this->resolveBillingAddress($data, $shippingAddress);
@@ -53,14 +58,17 @@ class CheckoutService
                 'customer_phone' => $data['customer_phone'],
                 'billing_address_id' => $billingAddress?->id,
                 'shipping_address_id' => $shippingAddress?->id,
-                'status' => OrderStatus::Pending,
+                'status' => $this->workflow->defaultSlug(),
                 'payment_status' => PaymentStatus::Pending,
                 'payment_method' => $paymentMethod,
                 'subtotal' => $totals['subtotal'],
                 'discount_total' => $totals['discount'],
-                'shipping_total' => $totals['shipping'],
-                'tax_total' => $totals['tax'],
-                'grand_total' => $totals['grand_total'],
+            'shipping_total' => $totals['shipping'],
+            'service_charge_total' => $totals['service_charge'],
+            'handling_charge_total' => $totals['handling_charge'],
+            'tax_total' => $totals['tax'],
+            'tax_type' => $totals['tax_type'],
+            'grand_total' => $totals['grand_total'],
                 'coupon_code' => $totals['coupon_code'],
                 'notes' => $this->buildOrderNotes($data, $shippingAddress, $billingAddress),
             ]);
@@ -94,9 +102,25 @@ class CheckoutService
         }
 
         foreach ($cart->items as $item) {
-            if ($item->quantity > $item->productVariant->stock_quantity) {
+            $variant = $item->productVariant;
+
+            if (! $item->product || $item->product->status !== ProductStatus::Active) {
                 throw ValidationException::withMessages([
-                    'cart' => "{$item->product->name} only has {$item->productVariant->stock_quantity} units in stock.",
+                    'cart' => "{$item->product?->name} is no longer available.",
+                ]);
+            }
+
+            if (! $variant || ! $variant->is_active) {
+                throw ValidationException::withMessages([
+                    'cart' => "A selected variation for {$item->product->name} is no longer available.",
+                ]);
+            }
+
+            $available = $this->stockAvailability->availableQuantity($variant, $item->quantity);
+
+            if ($item->quantity > $available) {
+                throw ValidationException::withMessages([
+                    'cart' => "{$item->product->name} only has {$available} units in stock.",
                 ]);
             }
         }
@@ -105,19 +129,32 @@ class CheckoutService
     private function createOrderItems(Cart $cart, Order $order): void
     {
         foreach ($cart->items as $item) {
+            $variantOptions = $item->variant_options
+                ?? VariantOptionFormatter::forVariant($item->productVariant);
+
             OrderItem::create([
                 'order_id' => $order->id,
                 'product_id' => $item->product_id,
                 'product_variant_id' => $item->product_variant_id,
                 'product_name' => $item->product->name,
-                'variant_name' => $item->productVariant->variant_name,
+                'variant_name' => VariantOptionFormatter::labelOrFallback(
+                    $variantOptions,
+                    $item->productVariant->variant_name,
+                ),
+                'variant_options' => $variantOptions,
                 'sku' => $item->productVariant->sku,
                 'quantity' => $item->quantity,
                 'unit_price' => $item->unit_price,
                 'total' => round((float) $item->unit_price * $item->quantity, 2),
             ]);
 
-            $item->productVariant->decrement('stock_quantity', $item->quantity);
+            $this->inventoryStock->decrementForSale(
+                $item->productVariant,
+                $item->quantity,
+                Order::class,
+                $order->id,
+                "Order {$order->order_number}",
+            );
         }
     }
 
@@ -125,7 +162,7 @@ class CheckoutService
     {
         OrderStatusHistory::create([
             'order_id' => $order->id,
-            'status' => OrderStatus::Pending->value,
+            'status' => $this->workflow->defaultSlug(),
             'note' => 'Order placed via storefront checkout.',
         ]);
     }

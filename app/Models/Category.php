@@ -54,6 +54,31 @@ class Category extends Model
         );
     }
 
+    protected function displayImageUrl(): Attribute
+    {
+        return Attribute::make(
+            get: function (): string {
+                if ($this->image) {
+                    return Storage::url($this->image);
+                }
+
+                if ($this->banner_image) {
+                    return Storage::url($this->banner_image);
+                }
+
+                $categoryIds = $this->descendants()->pluck('id')->push($this->id);
+
+                $product = Product::query()
+                    ->active()
+                    ->whereHas('categories', fn (Builder $query) => $query->whereIn('categories.id', $categoryIds))
+                    ->with(['images' => fn ($query) => $query->orderByDesc('is_primary')->orderBy('sort_order')])
+                    ->first();
+
+                return $product?->primary_image_url ?? route('media.placeholder');
+            },
+        );
+    }
+
     protected function isRoot(): Attribute
     {
         return Attribute::make(

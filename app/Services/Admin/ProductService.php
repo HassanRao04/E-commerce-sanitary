@@ -15,6 +15,7 @@ class ProductService
     public function __construct(
         private readonly ProductRepositoryInterface $products,
         private readonly ProductVariantService $variantService,
+        private readonly ProductVariationAttributeService $variationAttributeService,
         private readonly ProductImageService $imageService,
         private readonly ActivityLogService $activityLog,
     ) {}
@@ -35,8 +36,10 @@ class ProductService
                 'brand',
                 'categories',
                 'defaultVariant',
+                'variants' => fn ($query) => $query->orderBy('sort_order'),
                 'variants.attributeValues.attribute',
                 'variants.attributeValues.attributeValue',
+                'variants.images',
                 'images',
                 'attributeValues.attribute',
                 'attributeValues.attributeValue',
@@ -65,11 +68,12 @@ class ProductService
             [$productData, $relations] = $this->splitPayload($data);
             $product = $this->products->update($product, $productData);
             $this->applyRelations($product, $relations);
-            $this->activityLog->log('product.updated', $product, $old, $product->fresh()->toArray());
-
-            return $product->fresh([
+            $refreshed = $product->fresh([
                 'brand', 'defaultVariant', 'categories', 'variants', 'images', 'attributeValues',
             ]);
+            $this->activityLog->log('product.updated', $product, $old, $refreshed->toArray());
+
+            return $refreshed;
         });
     }
 
@@ -98,6 +102,8 @@ class ProductService
             'simple_pricing' => [
                 'price' => $data['price'] ?? null,
                 'sale_price' => $data['sale_price'] ?? null,
+                'wholesale_price' => $data['wholesale_price'] ?? null,
+                'dealer_price' => $data['dealer_price'] ?? null,
                 'cost_price' => $data['cost_price'] ?? null,
                 'stock_quantity' => $data['stock_quantity'] ?? 0,
                 'low_stock_threshold' => $data['low_stock_threshold'] ?? config('shop.low_stock_threshold', 5),
@@ -113,6 +119,8 @@ class ProductService
             $data['primary_image_id'],
             $data['price'],
             $data['sale_price'],
+            $data['wholesale_price'],
+            $data['dealer_price'],
             $data['cost_price'],
             $data['stock_quantity'],
             $data['low_stock_threshold'],
@@ -134,7 +142,10 @@ class ProductService
         $this->syncProductAttributes($product, $relations['product_attributes']);
 
         if ($product->product_type === 'variable') {
-            $this->variantService->syncVariable($product, $relations['variants']);
+            $variants = $relations['variants'];
+            $attributeMap = $this->variationAttributeService->resolveAttributeMap($variants);
+            $variants = $this->variationAttributeService->normalizeVariantRows($variants, $attributeMap);
+            $this->variantService->syncVariable($product, $variants);
         } else {
             $this->variantService->syncSimple($product, $relations['simple_pricing']);
         }

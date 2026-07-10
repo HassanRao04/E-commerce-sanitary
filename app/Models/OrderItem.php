@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 class OrderItem extends Model
@@ -24,6 +25,7 @@ class OrderItem extends Model
         'product_variant_id',
         'product_name',
         'variant_name',
+        'variant_options',
         'sku',
         'quantity',
         'unit_price',
@@ -36,6 +38,7 @@ class OrderItem extends Model
             'quantity' => 'integer',
             'unit_price' => 'decimal:2',
             'total' => 'decimal:2',
+            'variant_options' => 'array',
         ];
     }
 
@@ -105,5 +108,10 @@ class OrderItem extends Model
     public function productVariant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class);
+    }
+
+    public function review(): HasOne
+    {
+        return $this->hasOne(Review::class);
     }
 }

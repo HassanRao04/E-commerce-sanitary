@@ -4,12 +4,31 @@ namespace App\Services\Admin;
 
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Models\ProductVariant;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ProductImageService
 {
+    public function uploadForVariant(Product $product, ProductVariant $variant, UploadedFile $file): ProductImage
+    {
+        foreach ($variant->images as $image) {
+            $this->delete($image);
+        }
+
+        $sortOrder = ((int) $product->images()->max('sort_order')) + 1;
+        $path = $file->store("products/{$product->id}/variants", 'public');
+
+        return $product->images()->create([
+            'product_variant_id' => $variant->id,
+            'image_path' => $path,
+            'alt_text' => trim("{$product->name} — {$variant->variant_name}"),
+            'is_primary' => false,
+            'sort_order' => $sortOrder,
+        ]);
+    }
+
     public function uploadMany(Product $product, array $files, ?int $variantId = null): void
     {
         $sortOrder = (int) $product->images()->max('sort_order');

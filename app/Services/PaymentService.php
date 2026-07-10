@@ -4,11 +4,11 @@ namespace App\Services;
 
 use App\DataTransferObjects\PaymentIntentDTO;
 use App\DataTransferObjects\PaymentVerificationDTO;
-use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Services\OrderWorkflowService;
 use App\Services\Payments\PaymentGatewayManager;
 use Illuminate\Support\Facades\DB;
 
@@ -16,6 +16,7 @@ class PaymentService
 {
     public function __construct(
         private readonly PaymentGatewayManager $gateways,
+        private readonly OrderWorkflowService $workflow,
     ) {}
 
     public function initiate(Order $order, PaymentMethod $method): PaymentVerificationDTO
@@ -101,9 +102,7 @@ class PaymentService
     {
         $order->update([
             'payment_status' => PaymentStatus::Paid,
-            'status' => $order->status === OrderStatus::Pending
-                ? OrderStatus::Confirmed
-                : $order->status,
+            'status' => $this->workflow->confirmedSlugForPayment((string) $order->status),
         ]);
     }
 }

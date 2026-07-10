@@ -37,6 +37,8 @@ class ProductRequestRules
         return [
             'price' => ['required_if:product_type,simple', 'nullable', 'numeric', 'min:0'],
             'sale_price' => ['nullable', 'numeric', 'min:0'],
+            'wholesale_price' => ['nullable', 'numeric', 'min:0'],
+            'dealer_price' => ['nullable', 'numeric', 'min:0'],
             'cost_price' => ['nullable', 'numeric', 'min:0'],
             'stock_quantity' => ['required_if:product_type,simple', 'nullable', 'integer', 'min:0'],
             'low_stock_threshold' => ['nullable', 'integer', 'min:0'],
@@ -58,15 +60,23 @@ class ProductRequestRules
             'variants.*.variant_name' => ['required', 'string', 'max:255'],
             'variants.*.price' => ['required', 'numeric', 'min:0'],
             'variants.*.sale_price' => ['nullable', 'numeric', 'min:0'],
+            'variants.*.wholesale_price' => ['nullable', 'numeric', 'min:0'],
+            'variants.*.dealer_price' => ['nullable', 'numeric', 'min:0'],
             'variants.*.cost_price' => ['nullable', 'numeric', 'min:0'],
             'variants.*.stock_quantity' => ['required', 'integer', 'min:0'],
             'variants.*.low_stock_threshold' => ['nullable', 'integer', 'min:0'],
             'variants.*.is_default' => ['boolean'],
             'variants.*.is_active' => ['boolean'],
             'variants.*.attribute_values' => ['nullable', 'array'],
-            'variants.*.attribute_values.*.attribute_id' => ['required', 'exists:attributes,id'],
+            'variants.*.attribute_values.*.attribute_id' => ['nullable', 'integer', 'exists:attributes,id'],
+            'variants.*.attribute_values.*.attribute_name' => ['nullable', 'string', 'max:255'],
+            'variants.*.attribute_values.*.attribute_slug' => ['nullable', 'string', 'max:255'],
             'variants.*.attribute_values.*.attribute_value_id' => ['nullable', 'exists:attribute_values,id'],
+            'variants.*.attribute_values.*.value' => ['nullable', 'string', 'max:255'],
+            'variants.*.attribute_values.*.color_hex' => ['nullable', 'string', 'regex:/^#[0-9A-Fa-f]{6}$/'],
             'variants.*.attribute_values.*.custom_value' => ['nullable', 'string', 'max:255'],
+            'variants.*.image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
+            'variants.*.remove_image' => ['nullable', 'boolean'],
         ];
     }
 

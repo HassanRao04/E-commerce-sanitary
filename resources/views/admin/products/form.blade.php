@@ -4,24 +4,8 @@
 
 @section('content')
     @php
-        $currency = config('shop.currency_symbol');
-        $existingVariants = old('variants', $product->variants?->map(fn ($v) => [
-            'id' => $v->id,
-            'sku' => $v->sku,
-            'variant_name' => $v->variant_name,
-            'price' => $v->price,
-            'sale_price' => $v->sale_price,
-            'cost_price' => $v->cost_price,
-            'stock_quantity' => $v->stock_quantity,
-            'low_stock_threshold' => $v->low_stock_threshold,
-            'is_default' => $v->is_default,
-            'is_active' => $v->is_active,
-            'attribute_values' => $v->attributeValues->map(fn ($av) => [
-                'attribute_id' => $av->attribute_id,
-                'attribute_value_id' => $av->attribute_value_id,
-                'custom_value' => $av->custom_value,
-            ])->values()->all(),
-        ])->values()->all() ?? []);
+        $existingVariants = old('variants', $existingVariants ?? []);
+        $existingVariationAttributes = old('variation_attributes', $variationAttributes ?? []);
 
         $existingProductAttributes = old('product_attributes', $product->attributeValues?->map(fn ($av) => [
             'attribute_id' => $av->attribute_id,
@@ -32,12 +16,18 @@
         $alpineConfig = [
             'productType' => old('product_type', $product->product_type ?? 'simple'),
             'variants' => $existingVariants,
+            'variationAttributes' => $existingVariationAttributes,
             'productAttributes' => $existingProductAttributes,
             'variantAttributes' => $variantAttributes->map(fn ($a) => ['id' => $a->id, 'name' => $a->name, 'values' => $a->values->map(fn ($v) => ['id' => $v->id, 'value' => $v->value])])->values(),
             'allAttributes' => $attributes->map(fn ($a) => ['id' => $a->id, 'name' => $a->name, 'values' => $a->values->map(fn ($v) => ['id' => $v->id, 'value' => $v->value])])->values(),
             'removedImages' => old('remove_image_ids', []),
+            'defaultPrice' => old('price', $product->defaultVariant?->price ?? ''),
+            'defaultSalePrice' => old('sale_price', $product->defaultVariant?->sale_price ?? ''),
+            'defaultWholesalePrice' => old('wholesale_price', $product->defaultVariant?->wholesale_price ?? ''),
+            'defaultDealerPrice' => old('dealer_price', $product->defaultVariant?->dealer_price ?? ''),
         ];
     @endphp
+    @php $currency = config('shop.currency_symbol'); @endphp
 
     @include('admin.partials.page-header', [
         'title' => $product->exists ? 'Edit Product' : 'Create Product',
@@ -56,7 +46,7 @@
         {{-- Tabs --}}
         <div class="border-b border-gray-200">
             <nav class="-mb-px flex flex-wrap gap-4">
-                @foreach (['general' => 'General', 'pricing' => 'Pricing & Stock', 'variants' => 'Variants', 'images' => 'Images', 'attributes' => 'Attributes'] as $key => $label)
+                @foreach (['general' => 'General', 'pricing' => 'Pricing & Stock', 'variants' => 'Variations', 'images' => 'Images', 'attributes' => 'Specifications'] as $key => $label)
                     <button type="button" @click="tab = '{{ $key }}'"
                         :class="tab === '{{ $key }}' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
                         class="border-b-2 px-1 py-3 text-sm font-medium">
@@ -153,7 +143,7 @@
             <h3 class="text-base font-semibold mb-4">Pricing & Inventory</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div>
-                    <x-input-label for="price" value="Price ({{ $currency }})" />
+                    <x-input-label for="price" value="Base Price ({{ $currency }})" />
                     <x-text-input id="price" name="price" type="number" step="0.01" class="block mt-1 w-full" :value="old('price', $product->defaultVariant?->price ?? 0)" />
                     <x-input-error :messages="$errors->get('price')" class="mt-2" />
                 </div>
@@ -162,12 +152,21 @@
                     <x-text-input id="sale_price" name="sale_price" type="number" step="0.01" class="block mt-1 w-full" :value="old('sale_price', $product->defaultVariant?->sale_price)" />
                 </div>
                 <div>
+                    <x-input-label for="wholesale_price" value="Wholesale Price" />
+                    <x-text-input id="wholesale_price" name="wholesale_price" type="number" step="0.01" class="block mt-1 w-full" :value="old('wholesale_price', $product->defaultVariant?->wholesale_price)" />
+                </div>
+                <div>
+                    <x-input-label for="dealer_price" value="Dealer Price" />
+                    <x-text-input id="dealer_price" name="dealer_price" type="number" step="0.01" class="block mt-1 w-full" :value="old('dealer_price', $product->defaultVariant?->dealer_price)" />
+                </div>
+                <div>
                     <x-input-label for="cost_price" value="Cost Price" />
                     <x-text-input id="cost_price" name="cost_price" type="number" step="0.01" class="block mt-1 w-full" :value="old('cost_price', $product->defaultVariant?->cost_price)" />
                 </div>
                 <div>
-                    <x-input-label for="stock_quantity" value="Stock Quantity" />
+                    <x-input-label for="stock_quantity" value="On-Hand Stock (ERP)" />
                     <x-text-input id="stock_quantity" name="stock_quantity" type="number" class="block mt-1 w-full" :value="old('stock_quantity', $product->defaultVariant?->stock_quantity ?? 0)" />
+                    <p class="mt-1 text-xs text-gray-500">Website availability is calculated from ERP warehouse stock minus active cart reservations.</p>
                     <x-input-error :messages="$errors->get('stock_quantity')" class="mt-2" />
                 </div>
                 <div>
@@ -178,84 +177,9 @@
             <p class="mt-4 text-sm text-gray-500">Stock syncs to the default warehouse inventory record automatically.</p>
         </div>
 
-        {{-- Variants --}}
-        <div x-show="tab === 'variants' || (tab === 'pricing' && productType === 'variable')" x-cloak class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200/60 space-y-4">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h3 class="text-base font-semibold">Product Variants</h3>
-                    <p class="text-sm text-gray-500">Manage SKU, pricing, stock, and variant attributes.</p>
-                </div>
-                <button type="button" @click="addVariant()" class="px-3 py-2 bg-slate-900 text-white text-sm rounded-md">Add Variant</button>
-            </div>
-
-            <template x-for="(variant, index) in variants" :key="index">
-                <div class="border rounded-lg p-4 space-y-4">
-                    <div class="flex items-center justify-between">
-                        <h4 class="font-medium text-sm" x-text="'Variant #' + (index + 1)"></h4>
-                        <div class="flex items-center gap-3">
-                            <label class="flex items-center gap-1 text-xs">
-                                <input type="radio" name="default_variant_index" :checked="variant.is_default" @change="setDefaultVariant(index)">
-                                Default
-                            </label>
-                            <input type="hidden" :name="'variants['+index+'][is_default]'" :value="variant.is_default ? 1 : 0">
-                            <button type="button" @click="removeVariant(index)" class="text-red-600 text-xs" x-show="variants.length > 1">Remove</button>
-                        </div>
-                    </div>
-                    <input type="hidden" :name="'variants['+index+'][id]'" x-model="variant.id">
-                    <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        <div>
-                            <label class="text-xs font-medium text-gray-600">SKU</label>
-                            <input type="text" :name="'variants['+index+'][sku]'" x-model="variant.sku" class="mt-1 w-full rounded-md border-gray-300 text-sm uppercase" required>
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium text-gray-600">Name</label>
-                            <input type="text" :name="'variants['+index+'][variant_name]'" x-model="variant.variant_name" class="mt-1 w-full rounded-md border-gray-300 text-sm" required>
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium text-gray-600">Price</label>
-                            <input type="number" step="0.01" :name="'variants['+index+'][price]'" x-model="variant.price" class="mt-1 w-full rounded-md border-gray-300 text-sm" required>
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium text-gray-600">Sale Price</label>
-                            <input type="number" step="0.01" :name="'variants['+index+'][sale_price]'" x-model="variant.sale_price" class="mt-1 w-full rounded-md border-gray-300 text-sm">
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium text-gray-600">Cost</label>
-                            <input type="number" step="0.01" :name="'variants['+index+'][cost_price]'" x-model="variant.cost_price" class="mt-1 w-full rounded-md border-gray-300 text-sm">
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium text-gray-600">Stock</label>
-                            <input type="number" :name="'variants['+index+'][stock_quantity]'" x-model="variant.stock_quantity" class="mt-1 w-full rounded-md border-gray-300 text-sm" required>
-                        </div>
-                        <div>
-                            <label class="text-xs font-medium text-gray-600">Low Stock At</label>
-                            <input type="number" :name="'variants['+index+'][low_stock_threshold]'" x-model="variant.low_stock_threshold" class="mt-1 w-full rounded-md border-gray-300 text-sm">
-                        </div>
-                        <div class="flex items-end">
-                            <label class="flex items-center gap-2 text-sm pb-2">
-                                <input type="hidden" :name="'variants['+index+'][is_active]'" value="0">
-                                <input type="checkbox" :name="'variants['+index+'][is_active]'" value="1" x-model="variant.is_active"> Active
-                            </label>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3" x-show="variantAttributes.length">
-                        <template x-for="(attrRow, attrIndex) in variant.attribute_values" :key="attrIndex">
-                            <div>
-                                <label class="text-xs font-medium text-gray-600" x-text="variantAttributes[attrIndex]?.name"></label>
-                                <input type="hidden" :name="'variants['+index+'][attribute_values]['+attrIndex+'][attribute_id]'" x-model="attrRow.attribute_id">
-                                <select :name="'variants['+index+'][attribute_values]['+attrIndex+'][attribute_value_id]'" x-model="attrRow.attribute_value_id" class="mt-1 w-full rounded-md border-gray-300 text-sm">
-                                    <option value="">— Select —</option>
-                                    <template x-for="opt in variantAttributes[attrIndex]?.values || []" :key="opt.id">
-                                        <option :value="opt.id" x-text="opt.value"></option>
-                                    </template>
-                                </select>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-            </template>
-            <x-input-error :messages="$errors->get('variants')" class="mt-2" />
-            <x-input-error :messages="$errors->get('variants.*.sku')" class="mt-2" />
+        {{-- Variations (variable products) --}}
+        <div x-show="(tab === 'variants' || (tab === 'pricing' && productType === 'variable')) && productType === 'variable'" x-cloak class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200/60">
+            @include('admin.products.partials.variation-builder')
         </div>
 
         {{-- Images --}}

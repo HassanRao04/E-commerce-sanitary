@@ -14,6 +14,7 @@
         <table class="min-w-full divide-y divide-gray-200 text-sm">
             <thead class="bg-gray-50">
                 <tr>
+                    <th class="px-4 py-3 text-left font-medium text-gray-600">Image</th>
                     <th class="px-4 py-3 text-left font-medium text-gray-600">Name</th>
                     <th class="px-4 py-3 text-left font-medium text-gray-600">Slug</th>
                     <th class="px-4 py-3 text-left font-medium text-gray-600">Parent</th>
@@ -25,6 +26,13 @@
             <tbody class="divide-y divide-gray-200">
                 @forelse ($categories as $category)
                     <tr>
+                        <td class="px-4 py-3">
+                            @if ($category->image_url)
+                                <img src="{{ $category->image_url }}" alt="" class="h-10 w-10 rounded object-cover ring-1 ring-gray-200">
+                            @else
+                                <span class="inline-flex h-10 w-10 items-center justify-center rounded bg-gray-100 text-xs text-gray-400">—</span>
+                            @endif
+                        </td>
                         <td class="px-4 py-3 font-medium">{{ $category->name }}</td>
                         <td class="px-4 py-3 text-gray-600">{{ $category->slug }}</td>
                         <td class="px-4 py-3 text-gray-600">{{ $category->parent?->name ?? '—' }}</td>
@@ -43,7 +51,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No categories found.</td></tr>
+                    <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">No categories found.</td></tr>
                 @endforelse
             </tbody>
         </table>

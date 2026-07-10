@@ -5,7 +5,11 @@
 ])
 
 @php
-    $freeShippingThreshold = (float) config('shop.free_shipping_threshold', 10000);
+    $checkoutRules = $checkoutRules ?? [
+        'free_shipping_enabled' => false,
+        'free_shipping_threshold' => 0,
+    ];
+    $freeShippingThreshold = (float) ($checkoutRules['free_shipping_threshold'] ?? 0);
     $currencySymbol = config('shop.currency_symbol', 'Rs.');
 @endphp
 
@@ -107,6 +111,15 @@
                             @if ($review->body)
                                 <p class="product-review__body">{{ $review->body }}</p>
                             @endif
+                            @if ($review->relationLoaded('images') && $review->images->isNotEmpty())
+                                <div class="product-review__images mt-3 flex flex-wrap gap-2">
+                                    @foreach ($review->images as $image)
+                                        <a href="{{ $image->url }}" target="_blank" rel="noopener" class="block h-16 w-16 overflow-hidden rounded-lg ring-1 ring-ink-100">
+                                            <img src="{{ $image->url }}" alt="" class="h-full w-full object-cover">
+                                        </a>
+                                    @endforeach
+                                </div>
+                            @endif
                             <footer class="product-review__footer">
                                 <span class="product-review__author">{{ $review->user?->name ?? 'Verified buyer' }}</span>
                                 <span class="product-review__date">{{ $review->created_at?->format('M j, Y') }}</span>
@@ -123,7 +136,14 @@
             <div class="product-shipping-info">
                 <div class="product-shipping-info__item">
                     <h3 class="product-tabs__subheading">Delivery</h3>
-                    <p>Orders dispatch within 24–48 hours on in-stock items. Free shipping on orders over {{ $currencySymbol }} {{ number_format($freeShippingThreshold, 0) }}.</p>
+                    <p>
+                        Orders dispatch within 24–48 hours on in-stock items.
+                        @if ($checkoutRules['free_shipping_enabled'] && $freeShippingThreshold > 0)
+                            Free shipping on orders over {{ $currencySymbol }} {{ number_format($freeShippingThreshold, 0) }}.
+                        @else
+                            Standard shipping rates apply at checkout.
+                        @endif
+                    </p>
                 </div>
                 <div class="product-shipping-info__item">
                     <h3 class="product-tabs__subheading">Returns</h3>

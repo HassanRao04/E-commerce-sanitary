@@ -1,37 +1,27 @@
 @props([
     'product',
     'inWishlist' => false,
+    'selector' => null,
 ])
 
 @php
-    $variants = $product->variants->map(fn ($variant) => [
-        'id' => $variant->id,
-        'label' => $variant->variant_name ?: trim(collect([$variant->color_name, $variant->finish, $variant->size])->filter()->join(' · ')) ?: $variant->sku,
-        'sku' => $variant->sku,
-        'price' => (float) $variant->price,
-        'salePrice' => $variant->sale_price ? (float) $variant->sale_price : null,
-        'effectivePrice' => (float) $variant->effective_price,
-        'priceFormatted' => config('shop.currency_symbol').' '.number_format((float) $variant->effective_price, 2),
-        'comparePriceFormatted' => $variant->sale_price
-            ? config('shop.currency_symbol').' '.number_format((float) $variant->price, 2)
-            : null,
-        'stock' => (int) $variant->stock_quantity,
-        'colorHex' => $variant->color_hex,
-        'colorName' => $variant->color_name,
-        'purchasable' => $variant->stock_quantity > 0,
-    ])->values();
+    use App\Support\ProductVariantSelector;
 
-    $defaultVariant = $variants->firstWhere('id', $product->default_variant_id) ?? $variants->first();
+    $selector ??= ProductVariantSelector::forProduct($product);
     $lowThreshold = (int) config('shop.low_stock_threshold', 5);
 @endphp
 
 <div class="product-purchase" x-data="productPurchase(@js([
-    'variants' => $variants,
-    'defaultVariantId' => $defaultVariant['id'] ?? null,
+    'variants' => $selector['variants'],
+    'axes' => $selector['axes'],
+    'useAxisSelector' => $selector['useAxisSelector'],
+    'hasMultipleVariants' => $selector['hasMultipleVariants'],
+    'defaultVariantId' => $selector['defaultVariantId'],
     'lowStockThreshold' => $lowThreshold,
     'inWishlist' => $inWishlist,
     'productId' => $product->id,
-        'routes' => [
+    'requiresSelection' => $selector['useAxisSelector'] || $selector['hasMultipleVariants'],
+    'routes' => [
         'cartStore' => route('shop.cart.store'),
         'wishlistStore' => route('shop.wishlist.store'),
         'wishlistRemove' => url('/wishlist'),
@@ -40,10 +30,80 @@
     <form method="POST" action="{{ route('shop.cart.store') }}" class="product-purchase__form" @submit="prepareSubmit($event)">
         @csrf
         <input type="hidden" name="product_id" value="{{ $product->id }}">
-        <input type="hidden" name="product_variant_id" :value="selectedVariantId">
         <input type="hidden" name="buy_now" :value="buyNow ? 1 : 0">
 
-        @if ($variants->count() > 1)
+        @if ($selector['useAxisSelector'] || $selector['hasMultipleVariants'])
+            <input type="hidden" name="product_variant_id" :value="selectedVariantId">
+        @else
+            <input type="hidden" name="product_variant_id" value="{{ $selector['variants'][0]['id'] ?? '' }}">
+        @endif
+
+        @if ($selector['useAxisSelector'])
+            <template x-for="axis in axes" :key="axis.slug">
+                <div class="product-purchase__section product-purchase__option-group">
+                    <div class="product-purchase__label-row">
+                        <span class="product-purchase__label" x-text="axis.name"></span>
+                        <span class="product-purchase__selected" x-text="selectedOptionLabel(axis.slug)"></span>
+                    </div>
+
+                    <div
+                        x-show="axis.type === 'color'"
+                        class="product-option-swatches"
+                        role="listbox"
+                        :aria-label="axis.name + ' options'"
+                    >
+                        <template x-for="option in axis.options" :key="option.value">
+                            <button
+                                type="button"
+                                class="product-color-swatch"
+                                role="option"
+                                :class="{
+                                    'is-active': isOptionSelected(axis.slug, option.value),
+                                    'is-unavailable': isOptionUnavailable(axis.slug, option.value),
+                                    'is-disabled': isOptionDisabled(axis.slug, option.value),
+                                }"
+                                :disabled="isOptionDisabled(axis.slug, option.value)"
+                                :title="option.value + (isOptionUnavailable(axis.slug, option.value) ? ' — Out of stock' : '')"
+                                :aria-label="option.value"
+                                :aria-selected="isOptionSelected(axis.slug, option.value)"
+                                @click="selectOption(axis.slug, option.value)"
+                            >
+                                <span
+                                    class="product-color-swatch__circle"
+                                    :style="`background-color: ${option.hex || '#CCCCCC'}`"
+                                ></span>
+                                <span class="product-color-swatch__label" x-text="option.value"></span>
+                            </button>
+                        </template>
+                    </div>
+
+                    <div
+                        x-show="axis.type !== 'color'"
+                        class="product-option-buttons"
+                        role="listbox"
+                        :aria-label="axis.name + ' options'"
+                    >
+                        <template x-for="option in axis.options" :key="option.value">
+                            <button
+                                type="button"
+                                class="product-size-btn"
+                                role="option"
+                                :class="{
+                                    'is-active': isOptionSelected(axis.slug, option.value),
+                                    'is-disabled': isOptionDisabled(axis.slug, option.value),
+                                }"
+                                :disabled="isOptionDisabled(axis.slug, option.value)"
+                                :title="option.value + (isOptionDisabled(axis.slug, option.value) ? ' — Unavailable' : '')"
+                                :aria-label="option.value"
+                                :aria-selected="isOptionSelected(axis.slug, option.value)"
+                                @click="selectOption(axis.slug, option.value)"
+                                x-text="option.value"
+                            ></button>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        @elseif ($selector['hasMultipleVariants'])
             <div class="product-purchase__section">
                 <div class="product-purchase__label-row">
                     <span class="product-purchase__label">Select option</span>
@@ -74,16 +134,14 @@
                     </template>
                 </div>
             </div>
-        @else
-            <input type="hidden" name="product_variant_id" value="{{ $variants->first()['id'] ?? '' }}">
         @endif
 
-        <div class="product-purchase__price">
+        <div class="product-purchase__price" :class="{ 'is-updating': isUpdatingVariant }">
             <span class="product-purchase__price-current" x-text="selectedVariant?.priceFormatted"></span>
             <span class="product-purchase__price-compare" x-show="selectedVariant?.comparePriceFormatted" x-text="selectedVariant?.comparePriceFormatted"></span>
         </div>
 
-        <div class="product-purchase__meta">
+        <div class="product-purchase__meta" :class="{ 'is-updating': isUpdatingVariant }">
             <span class="product-purchase__sku" x-show="selectedVariant?.sku">
                 SKU: <span x-text="selectedVariant?.sku"></span>
             </span>
@@ -102,6 +160,7 @@
         @error('quantity')<p class="ds-error-text">{{ $message }}</p>@enderror
         @error('product')<p class="ds-error-text">{{ $message }}</p>@enderror
         @error('product_variant_id')<p class="ds-error-text">{{ $message }}</p>@enderror
+        <p class="product-purchase__selection-error ds-error-text" x-show="selectionError" x-text="selectionError" x-cloak></p>
 
         <div class="product-purchase__actions">
             <button

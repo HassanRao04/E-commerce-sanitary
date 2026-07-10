@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Review;
 use App\Services\ProductCatalogService;
+use App\Services\ReviewSettingsService;
 use App\Services\WishlistService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -18,6 +19,7 @@ class ProductController extends Controller
     public function __construct(
         private readonly ProductCatalogService $catalog,
         private readonly WishlistService $wishlistService,
+        private readonly ReviewSettingsService $reviewSettings,
     ) {}
 
     public function index(Request $request): View|JsonResponse
@@ -39,6 +41,9 @@ class ProductController extends Controller
             'images' => fn ($q) => $q->orderByDesc('is_primary')->orderBy('sort_order'),
             'documents',
             'variants' => fn ($q) => $q->active()->orderBy('sort_order'),
+            'variants.images',
+            'variants.attributeValues.attribute',
+            'variants.attributeValues.attributeValue',
             'attributeValues.attribute',
             'attributeValues.attributeValue',
         ]);
@@ -57,21 +62,32 @@ class ProductController extends Controller
             ->take(8)
             ->get();
 
-        $reviews = Review::query()
-            ->approved()
-            ->forProduct($product->id)
-            ->with('user:id,name')
-            ->recent()
-            ->take(20)
-            ->get();
+        $reviews = collect();
+        $reviewStats = ['average' => 0.0, 'count' => 0];
 
-        $reviewStats = [
-            'average' => round((float) Review::query()->approved()->forProduct($product->id)->avg('rating'), 1),
-            'count' => Review::query()->approved()->forProduct($product->id)->count(),
-        ];
+        if ($this->reviewSettings->reviewsEnabled()) {
+            $reviews = Review::query()
+                ->approved()
+                ->forProduct($product->id)
+                ->with(['user:id,name', 'images'])
+                ->recent()
+                ->take(20)
+                ->get();
 
-        $inWishlist = $this->wishlistService->contains($product->id);
+            $reviewAggregate = Review::query()
+                ->approved()
+                ->forProduct($product->id)
+                ->selectRaw('ROUND(AVG(rating), 1) as average, COUNT(*) as count')
+                ->first();
+
+            $reviewStats = [
+                'average' => (float) ($reviewAggregate->average ?? 0),
+                'count' => (int) ($reviewAggregate->count ?? 0),
+            ];
+        }
+
         $wishlistProductIds = $this->wishlistService->items()->pluck('product_id')->all();
+        $inWishlist = in_array($product->id, $wishlistProductIds, true);
 
         return view('storefront.products.show', compact(
             'product',

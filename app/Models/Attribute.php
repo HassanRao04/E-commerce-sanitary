@@ -34,4 +34,9 @@ class Attribute extends Model
     {
         return $this->values();
     }
+
+    public function isColorAttribute(): bool
+    {
+        return $this->type === 'color' || $this->slug === 'color';
+    }
 }

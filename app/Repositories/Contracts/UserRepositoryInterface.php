@@ -7,7 +7,18 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 interface UserRepositoryInterface extends RepositoryInterface
 {
-    public function search(?string $term = null, array $filters = [], int $perPage = 15): LengthAwarePaginator;
+    /**
+     * @param  array{
+     *     name?: string|null,
+     *     email?: string|null,
+     *     role?: string|null,
+     *     status?: string|null,
+     *     staff_only?: bool,
+     *     sort?: string|null,
+     *     direction?: string|null,
+     * }  $filters
+     */
+    public function search(array $filters = [], int $perPage = 15): LengthAwarePaginator;
 
     public function findByEmail(string $email): ?User;
 }

@@ -2,6 +2,10 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\PaymentStatus;
+use App\Enums\ShipmentStatus;
+use App\Models\Order;
+use App\Models\Shipping;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -19,14 +23,19 @@ class ReportManagementTest extends TestCase
         $this->admin = User::where('email', config('shop.admin_email'))->first();
     }
 
-    public function test_admin_can_view_reports_hub(): void
+    public function test_admin_can_view_erp_reporting_dashboard(): void
     {
         $this->actingAs($this->admin)
             ->get(route('admin.reports.index'))
             ->assertOk()
-            ->assertSee('Business Reports')
+            ->assertSee('Reporting Dashboard')
+            ->assertSee('Sales Reports')
+            ->assertSee('Product Reports')
+            ->assertSee('Inventory Reports')
+            ->assertSee('Shipping Reports')
+            ->assertSee('Customer Reports')
             ->assertSee('Daily Sales')
-            ->assertSee('Inventory Reports');
+            ->assertSee('Shipment Status');
     }
 
     public function test_admin_can_view_daily_sales_report(): void
@@ -35,6 +44,30 @@ class ReportManagementTest extends TestCase
             ->get(route('admin.reports.show', 'daily-sales'))
             ->assertOk()
             ->assertSee('Daily Sales')
+            ->assertSee('Detailed Data');
+    }
+
+    public function test_admin_can_view_shipping_status_report_from_erp_transactions(): void
+    {
+        $order = Order::factory()->paid()->create([
+            'shipping_total' => 750,
+            'payment_status' => PaymentStatus::Paid,
+        ]);
+
+        Shipping::query()->create([
+            'order_id' => $order->id,
+            'courier_name' => 'TCS',
+            'tracking_number' => 'TCS123456',
+            'status' => ShipmentStatus::Delivered,
+            'shipped_at' => now()->subDays(3),
+            'delivered_at' => now()->subDay(),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.reports.show', 'shipping-status'))
+            ->assertOk()
+            ->assertSee('Shipment Status')
+            ->assertSee('Delivered')
             ->assertSee('Detailed Data');
     }
 
@@ -57,6 +90,15 @@ class ReportManagementTest extends TestCase
             'spreadsheetml.sheet',
             (string) $response->headers->get('content-type')
         );
+    }
+
+    public function test_admin_can_export_shipping_courier_pdf(): void
+    {
+        $response = $this->actingAs($this->admin)
+            ->get(route('admin.reports.export', ['shipping-courier', 'pdf']));
+
+        $response->assertOk();
+        $this->assertStringContainsString('application/pdf', (string) $response->headers->get('content-type'));
     }
 
     public function test_admin_can_export_revenue_pdf(): void

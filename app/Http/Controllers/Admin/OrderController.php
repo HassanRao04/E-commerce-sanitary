@@ -45,7 +45,7 @@ class OrderController extends Controller
 
         $this->orderService->updateStatus(
             $order,
-            $request->enum('status', \App\Enums\OrderStatus::class),
+            $request->validated('status'),
             $request->input('note'),
         );
 

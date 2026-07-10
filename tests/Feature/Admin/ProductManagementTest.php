@@ -3,6 +3,7 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\Attribute;
+use App\Models\AttributeValue;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
@@ -109,6 +110,141 @@ class ProductManagementTest extends TestCase
         $this->assertEquals('variable', $product->product_type);
         $this->assertEquals(2, $product->variants()->count());
         $this->assertDatabaseHas('product_variants', ['sku' => 'MC-BLACK', 'sale_price' => 8999]);
+    }
+
+    public function test_admin_can_create_variable_product_with_variation_builder(): void
+    {
+        $brand = Brand::first();
+
+        $response = $this->actingAs($this->admin)->post(route('admin.products.store'), [
+            'name' => 'Basin Series',
+            'slug' => 'basin-series',
+            'base_sku' => 'BS-BASE',
+            'brand_id' => $brand->id,
+            'status' => 'active',
+            'product_type' => 'variable',
+            'variants' => [
+                [
+                    'sku' => 'BS-BASE-BLACK-24-INCH',
+                    'variant_name' => 'Black / 24 Inch',
+                    'price' => 12000,
+                    'sale_price' => 10999,
+                    'stock_quantity' => 4,
+                    'is_default' => 1,
+                    'is_active' => 1,
+                    'attribute_values' => [
+                        [
+                            'attribute_name' => 'Color',
+                            'attribute_slug' => 'color',
+                            'value' => 'Black',
+                            'color_hex' => '#000000',
+                        ],
+                        [
+                            'attribute_name' => 'Size',
+                            'attribute_slug' => 'size',
+                            'value' => '24 Inch',
+                        ],
+                    ],
+                ],
+                [
+                    'sku' => 'BS-BASE-WHITE-24-INCH',
+                    'variant_name' => 'White / 24 Inch',
+                    'price' => 12000,
+                    'stock_quantity' => 6,
+                    'is_default' => 0,
+                    'is_active' => 1,
+                    'attribute_values' => [
+                        [
+                            'attribute_name' => 'Color',
+                            'attribute_slug' => 'color',
+                            'value' => 'White',
+                            'color_hex' => '#FFFFFF',
+                        ],
+                        [
+                            'attribute_name' => 'Size',
+                            'attribute_slug' => 'size',
+                            'value' => '24 Inch',
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $product = Product::where('slug', 'basin-series')->first();
+        $response->assertRedirect(route('admin.products.edit', $product));
+
+        $this->assertEquals('variable', $product->product_type);
+        $this->assertEquals(2, $product->variants()->count());
+
+        $colorAttribute = Attribute::where('slug', 'color')->first();
+        $this->assertNotNull($colorAttribute);
+        $this->assertSame('color', $colorAttribute->type);
+        $this->assertTrue($colorAttribute->is_variant_attribute);
+
+        $blackValue = AttributeValue::where('attribute_id', $colorAttribute->id)
+            ->where('slug', 'black')
+            ->first();
+        $this->assertSame('#000000', $blackValue->color_hex);
+
+        $variant = $product->variants()->where('sku', 'BS-BASE-BLACK-24-INCH')->first();
+        $this->assertNotNull($variant);
+        $this->assertEquals('Black', $variant->color_name);
+        $this->assertSame('#000000', $variant->color_hex);
+        $this->assertEquals('24 Inch', $variant->size);
+        $this->assertEquals(2, $variant->attributeValues()->count());
+        $this->assertEquals(10999, (float) $variant->sale_price);
+
+        $swatch = $variant->swatchColor();
+        $this->assertSame('Black', $swatch['name']);
+        $this->assertSame('#000000', $swatch['hex']);
+    }
+
+    public function test_admin_can_upload_variant_image_on_update(): void
+    {
+        $product = Product::where('product_type', 'variable')->first()
+            ?? Product::factory()->create(['product_type' => 'variable']);
+
+        $variant = $product->variants()->first();
+        if (! $variant) {
+            $variant = $product->variants()->create([
+                'sku' => 'TEST-V1',
+                'variant_name' => 'Test',
+                'price' => 1000,
+                'stock_quantity' => 5,
+                'is_default' => true,
+                'is_active' => true,
+            ]);
+            $product->update(['default_variant_id' => $variant->id]);
+        }
+
+        $response = $this->actingAs($this->admin)->put(route('admin.products.update', $product), [
+            'name' => $product->name,
+            'slug' => $product->slug,
+            'base_sku' => $product->base_sku,
+            'status' => $product->status->value,
+            'product_type' => 'variable',
+            'variants' => [
+                [
+                    'id' => $variant->id,
+                    'sku' => $variant->sku,
+                    'variant_name' => $variant->variant_name,
+                    'price' => $variant->price,
+                    'stock_quantity' => $variant->stock_quantity,
+                    'is_default' => 1,
+                    'is_active' => 1,
+                    'attribute_values' => [[
+                        'attribute_name' => 'Color',
+                        'attribute_slug' => 'color',
+                        'value' => 'Black',
+                    ]],
+                    'image' => UploadedFile::fake()->create('variant.jpg', 100, 'image/jpeg'),
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect(route('admin.products.edit', $product));
+        $variant->refresh();
+        $this->assertEquals(1, $variant->images()->count());
     }
 
     public function test_admin_can_update_product_and_remove_image(): void

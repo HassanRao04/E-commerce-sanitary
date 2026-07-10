@@ -10,6 +10,9 @@
 @endpush
 
 @section('content')
+    @php
+        $variantSelector = \App\Support\ProductVariantSelector::forProduct($product);
+    @endphp
     <div class="product-page">
         <div class="ds-container ds-section-tight">
             @include('storefront.partials.breadcrumbs', ['items' => array_filter([
@@ -20,7 +23,7 @@
 
             <div class="product-page__hero">
                 <div class="product-page__gallery">
-                    <x-storefront.product-gallery :product="$product" />
+                    <x-storefront.product-gallery :product="$product" :selector="$variantSelector" />
                 </div>
 
                 <div class="product-page__summary">
@@ -56,7 +59,7 @@
                         </div>
                     </div>
 
-                    <x-storefront.product-purchase :product="$product" :in-wishlist="$inWishlist" />
+                    <x-storefront.product-purchase :product="$product" :in-wishlist="$inWishlist" :selector="$variantSelector" />
                 </div>
             </div>
 

@@ -1,0 +1,69 @@
+/* Admin — Product Variation Builder */
+
+.variation-builder__section {
+    @apply rounded-xl border border-gray-200/80 bg-gray-50/50 p-5 sm:p-6;
+}
+
+.variation-builder__empty {
+    @apply rounded-lg border border-dashed border-gray-300 bg-white px-4 py-8 text-center text-sm text-gray-500;
+}
+
+.variation-builder__attribute-card {
+    @apply rounded-xl border border-gray-200 bg-white p-4 shadow-sm;
+}
+
+.variation-builder__chip {
+    @apply inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-800 ring-1 ring-indigo-100;
+}
+
+.variation-builder__chip button {
+    @apply ml-0.5 text-indigo-400 hover:text-indigo-700 leading-none text-base;
+}
+
+.variation-builder__chip--color {
+    @apply gap-2 pr-2;
+}
+
+.variation-builder__swatch {
+    @apply inline-block h-4 w-4 shrink-0 rounded-full ring-1 ring-gray-300;
+}
+
+.variation-builder__btn {
+    @apply inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition;
+}
+
+.variation-builder__btn--primary {
+    @apply bg-indigo-600 text-white shadow-sm hover:bg-indigo-700;
+}
+
+.variation-builder__btn--secondary {
+    @apply bg-white text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50;
+}
+
+.variation-builder__btn--ghost {
+    @apply bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50;
+}
+
+.variation-builder__table {
+    @apply rounded-xl border border-gray-200 shadow-sm;
+}
+
+.variation-builder__th {
+    @apply bg-gray-50 px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500;
+}
+
+.variation-builder__td {
+    @apply px-3 py-3 align-top;
+}
+
+.variation-builder__row:hover {
+    @apply bg-gray-50/60;
+}
+
+.variation-builder__input {
+    @apply w-full min-w-[5.5rem] rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500;
+}
+
+.variation-builder__thumb {
+    @apply shrink-0;
+}

@@ -7,6 +7,8 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class CatalogManagementTest extends TestCase
@@ -69,6 +71,30 @@ class CatalogManagementTest extends TestCase
 
         $response->assertRedirect(route('admin.brands.index'));
         $this->assertDatabaseHas('brands', ['name' => 'New Brand']);
+    }
+
+    public function test_admin_can_upload_category_homepage_image(): void
+    {
+        Storage::fake('public');
+
+        $response = $this->actingAs($this->admin)->post(route('admin.categories.store'), [
+            'name' => 'Basins',
+            'slug' => 'basins-card',
+            'sort_order' => 1,
+            'is_active' => true,
+            'image' => UploadedFile::fake()->create('basins.jpg', 100, 'image/jpeg'),
+        ]);
+
+        $response->assertRedirect(route('admin.categories.index'));
+
+        $category = Category::where('slug', 'basins-card')->firstOrFail();
+
+        $this->assertNotNull($category->image);
+        Storage::disk('public')->assertExists($category->image);
+
+        $this->get(route('shop.home'))
+            ->assertOk()
+            ->assertSee($category->image_url, false);
     }
 
     public function test_admin_can_view_inventory(): void

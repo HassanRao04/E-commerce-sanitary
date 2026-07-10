@@ -1,19 +1,25 @@
 <?php
 
+use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\CheckoutRulesController;
 use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\HomepageController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\InvoiceController;
 use App\Http\Controllers\Admin\OrderController;
+use App\Http\Controllers\Admin\OrderWorkflowController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\ReviewController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\ShippingController;
+use App\Http\Controllers\Admin\ShippingSettingsController;
+use App\Http\Controllers\Admin\TaxChargeSettingsController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,8 +51,26 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
         ->name('dashboard');
 
     // ── People ───────────────────────────────────────────────────────────
-    Route::middleware('can:users.view')->group(function (): void {
-        Route::resource('users', UserController::class)->only(['index', 'create', 'edit']);
+    Route::middleware('permission:users.create')->group(function (): void {
+        Route::get('users/create', [UserController::class, 'create'])->name('users.create');
+        Route::post('users', [UserController::class, 'store'])->name('users.store');
+    });
+
+    Route::middleware('permission:users.view')->group(function (): void {
+        Route::get('users', [UserController::class, 'index'])->name('users.index');
+        Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
+    });
+
+    Route::middleware('permission:users.update')->group(function (): void {
+        Route::get('users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+        Route::put('users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::patch('users/{user}/role', [UserController::class, 'updateRole'])->name('users.role.update');
+        Route::delete('users/{user}/role', [UserController::class, 'destroyRole'])->name('users.role.destroy');
+        Route::post('users/bulk', [UserController::class, 'bulkAction'])->name('users.bulk');
+    });
+
+    Route::middleware('permission:users.delete')->group(function (): void {
+        Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
     });
 
     Route::middleware('can:customers.view')->group(function (): void {
@@ -85,6 +109,16 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
     // ── Commerce ─────────────────────────────────────────────────────────
     Route::middleware('can:orders.view')->group(function (): void {
         Route::get('orders', [OrderController::class, 'index'])->name('orders.index');
+        Route::get('orders/workflow', [OrderWorkflowController::class, 'index'])->name('orders.workflow.index');
+        Route::post('orders/workflow', [OrderWorkflowController::class, 'store'])
+            ->middleware('can:orders.workflow.manage')
+            ->name('orders.workflow.store');
+        Route::patch('orders/workflow/{orderStatus}', [OrderWorkflowController::class, 'update'])
+            ->middleware('can:orders.workflow.manage')
+            ->name('orders.workflow.update');
+        Route::delete('orders/workflow/{orderStatus}', [OrderWorkflowController::class, 'destroy'])
+            ->middleware('can:orders.workflow.manage')
+            ->name('orders.workflow.destroy');
         Route::get('orders/{order}', [OrderController::class, 'show'])->name('orders.show');
         Route::get('orders/{order}/track', [OrderController::class, 'track'])->name('orders.track');
         Route::get('orders/{order}/invoice/print', [OrderController::class, 'printInvoice'])
@@ -130,12 +164,32 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
         });
     });
 
+    Route::middleware('can:checkout_rules.view')->group(function (): void {
+        Route::get('checkout/rules', [CheckoutRulesController::class, 'edit'])->name('checkout.rules.edit');
+        Route::patch('checkout/rules', [CheckoutRulesController::class, 'update'])
+            ->middleware('can:checkout_rules.manage')
+            ->name('checkout.rules.update');
+    });
+
+    Route::middleware('can:tax.view')->group(function (): void {
+        Route::get('tax/settings', [TaxChargeSettingsController::class, 'edit'])->name('tax.settings.edit');
+        Route::patch('tax/settings', [TaxChargeSettingsController::class, 'update'])
+            ->middleware('can:tax.manage')
+            ->name('tax.settings.update');
+    });
+
     Route::middleware('can:shipping.view')->group(function (): void {
+        Route::get('shipping/settings', [ShippingSettingsController::class, 'edit'])->name('shipping.settings.edit');
+        Route::get('shipping/settings/products/search', [ShippingSettingsController::class, 'searchProducts'])
+            ->name('shipping.settings.products.search');
         Route::get('shipping', [ShippingController::class, 'index'])->name('shipping.index');
         Route::get('shipping/{shipping}', [ShippingController::class, 'show'])->name('shipping.show');
         Route::get('shipping/{shipping}/label', [ShippingController::class, 'printLabel'])
             ->middleware('can:shipping.view')
             ->name('shipping.label');
+        Route::patch('shipping/settings', [ShippingSettingsController::class, 'update'])
+            ->middleware('can:shipping.manage')
+            ->name('shipping.settings.update');
         Route::post('orders/{order}/shipping', [ShippingController::class, 'store'])
             ->middleware('can:shipping.manage')
             ->name('orders.shipping.store');
@@ -150,12 +204,25 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
     // ── Engagement ───────────────────────────────────────────────────────
     Route::middleware('can:reviews.view')->group(function (): void {
         Route::get('reviews', [ReviewController::class, 'index'])->name('reviews.index');
+        Route::get('reviews/settings', [ReviewController::class, 'settings'])->name('reviews.settings');
+        Route::patch('reviews/settings', [ReviewController::class, 'updateSettings'])
+            ->middleware('can:reviews.moderate')
+            ->name('reviews.settings.update');
         Route::patch('reviews/{review}/approve', [ReviewController::class, 'approve'])
             ->middleware('can:reviews.moderate')
             ->name('reviews.approve');
         Route::patch('reviews/{review}/reject', [ReviewController::class, 'reject'])
             ->middleware('can:reviews.moderate')
             ->name('reviews.reject');
+        Route::patch('reviews/{review}/hide', [ReviewController::class, 'hide'])
+            ->middleware('can:reviews.moderate')
+            ->name('reviews.hide');
+        Route::patch('reviews/{review}/feature', [ReviewController::class, 'toggleFeatured'])
+            ->middleware('can:reviews.moderate')
+            ->name('reviews.feature');
+        Route::delete('reviews/{review}', [ReviewController::class, 'destroy'])
+            ->middleware('can:reviews.moderate')
+            ->name('reviews.destroy');
     });
 
     // ── Insights ─────────────────────────────────────────────────────────
@@ -168,6 +235,29 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
     });
 
     // ── System ───────────────────────────────────────────────────────────
+    Route::middleware('can:activity.view')->group(function (): void {
+        Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
+    });
+
+    Route::middleware('permission:homepage.view')->group(function (): void {
+        Route::get('homepage', [HomepageController::class, 'index'])->name('homepage.index');
+        Route::get('homepage/products/search', [HomepageController::class, 'searchProducts'])->name('homepage.products.search');
+    });
+
+    Route::middleware('permission:homepage.manage')->group(function (): void {
+        Route::patch('homepage/branding', [HomepageController::class, 'updateBranding'])->name('homepage.branding.update');
+        Route::patch('homepage/sections', [HomepageController::class, 'updateSections'])->name('homepage.sections.update');
+        Route::patch('homepage/footer', [HomepageController::class, 'updateFooter'])->name('homepage.footer.update');
+        Route::patch('homepage/contact', [HomepageController::class, 'updateContact'])->name('homepage.contact.update');
+        Route::patch('homepage/header', [HomepageController::class, 'updateHeader'])->name('homepage.header.update');
+        Route::patch('homepage/social', [HomepageController::class, 'updateSocial'])->name('homepage.social.update');
+        Route::get('homepage/hero/create', [HomepageController::class, 'createHero'])->name('homepage.hero.create');
+        Route::post('homepage/hero', [HomepageController::class, 'storeHero'])->name('homepage.hero.store');
+        Route::get('homepage/hero/{banner}/edit', [HomepageController::class, 'editHero'])->name('homepage.hero.edit');
+        Route::put('homepage/hero/{banner}', [HomepageController::class, 'updateHero'])->name('homepage.hero.update');
+        Route::delete('homepage/hero/{banner}', [HomepageController::class, 'destroyHero'])->name('homepage.hero.destroy');
+    });
+
     Route::middleware('can:settings.view')->group(function (): void {
         Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
         Route::patch('settings', [SettingsController::class, 'update'])

@@ -8,6 +8,7 @@ use App\Http\Requests\Api\V1\RegisterRequest;
 use App\Http\Resources\Api\V1\UserResource;
 use App\Models\Customer;
 use App\Models\User;
+use App\Services\Auth\UserAuthenticationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +17,8 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function __construct(private readonly UserAuthenticationService $authService) {}
+
     public function login(LoginRequest $request): JsonResponse
     {
         if (! Auth::attempt($request->only('email', 'password'))) {
@@ -26,7 +29,18 @@ class AuthController extends Controller
 
         /** @var User $user */
         $user = $request->user();
-        $user->update(['last_login_at' => now()]);
+
+        try {
+            $this->authService->ensureMayLogin($user);
+        } catch (ValidationException $exception) {
+            Auth::logout();
+
+            throw ValidationException::withMessages([
+                'email' => [$exception->errors()['email'][0] ?? 'You cannot sign in with this account.'],
+            ]);
+        }
+
+        $this->authService->recordSuccessfulLogin($user);
 
         $token = $user->createToken($request->input('device_name', 'api-token'));
 

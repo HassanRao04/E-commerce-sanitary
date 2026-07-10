@@ -9,12 +9,12 @@
         $rows = $report['rows'];
         $chart = $report['chart'];
         $isInventory = $meta['key'] === 'inventory';
-        $moneyFields = ['revenue', 'period_revenue', 'lifetime_spend', 'valuation', 'gross_revenue', 'subtotal', 'discounts', 'shipping', 'tax', 'total_revenue', 'average_order_value', 'total_valuation'];
+        $moneyFields = ['revenue', 'period_revenue', 'lifetime_spend', 'valuation', 'gross_revenue', 'subtotal', 'discounts', 'shipping', 'tax', 'total_revenue', 'average_order_value', 'total_valuation', 'shipping_revenue', 'shipping_fee'];
     @endphp
 
     <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-            <a href="{{ route('admin.reports.index') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">← All reports</a>
+            <a href="{{ route('admin.reports.index') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">← Reporting dashboard</a>
             <h2 class="mt-1 text-2xl font-bold text-gray-900">{{ $meta['label'] }}</h2>
             <p class="text-sm text-gray-500">{{ $meta['description'] }}</p>
         </div>
@@ -134,6 +134,26 @@
                                     <td class="px-4 py-3">{{ $row['label'] }}</td>
                                     <td class="px-4 py-3">{{ number_format($row['orders']) }}</td>
                                     <td class="px-4 py-3">{{ $currency }} {{ number_format($row['revenue'], 2) }}</td>
+                                    @break
+                                @case('shipping-status')
+                                    <td class="px-4 py-3">{{ $row['label'] }}</td>
+                                    <td class="px-4 py-3">{{ number_format($row['shipments']) }}</td>
+                                    <td class="px-4 py-3">{{ $currency }} {{ number_format($row['shipping_revenue'], 2) }}</td>
+                                    @break
+                                @case('shipping-courier')
+                                    <td class="px-4 py-3">{{ $row['label'] }}</td>
+                                    <td class="px-4 py-3">{{ number_format($row['shipments']) }}</td>
+                                    <td class="px-4 py-3">{{ number_format($row['delivered']) }}</td>
+                                    <td class="px-4 py-3">{{ $row['avg_delivery_days'] !== null ? number_format($row['avg_delivery_days'], 1).' days' : '—' }}</td>
+                                    @break
+                                @case('shipping-fulfillment')
+                                    <td class="px-4 py-3">{{ $row['label'] }}</td>
+                                    <td class="px-4 py-3">{{ $row['courier'] }}</td>
+                                    <td class="px-4 py-3">{{ $row['tracking'] }}</td>
+                                    <td class="px-4 py-3">{{ $row['status'] }}</td>
+                                    <td class="px-4 py-3">{{ $row['shipped_at'] }}</td>
+                                    <td class="px-4 py-3">{{ $row['delivered_at'] }}</td>
+                                    <td class="px-4 py-3">{{ $currency }} {{ number_format($row['shipping_fee'], 2) }}</td>
                                     @break
                             @endswitch
                         </tr>

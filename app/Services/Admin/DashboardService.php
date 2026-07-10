@@ -2,7 +2,6 @@
 
 namespace App\Services\Admin;
 
-use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ProductStatus;
 use App\Models\Customer;
@@ -11,11 +10,15 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\OrderWorkflowService;
 use Illuminate\Support\Collection;
 
 class DashboardService
 {
-    public function __construct(private readonly ReportService $reportService) {}
+    public function __construct(
+        private readonly ReportService $reportService,
+        private readonly OrderWorkflowService $workflow,
+    ) {}
 
     public function data(): array
     {
@@ -48,15 +51,16 @@ class DashboardService
 
     public function kpis(): array
     {
+        $excluded = $this->workflow->revenueExcludedSlugs();
         $revenueQuery = Order::query()
             ->where('payment_status', PaymentStatus::Paid)
-            ->whereNotIn('status', [OrderStatus::Cancelled, OrderStatus::Refunded]);
+            ->whereNotIn('status', $excluded);
 
         return [
             'total_orders' => Order::query()->count(),
-            'pending_orders' => Order::query()->where('status', OrderStatus::Pending)->count(),
-            'processing_orders' => Order::query()->where('status', OrderStatus::Processing)->count(),
-            'delivered_orders' => Order::query()->where('status', OrderStatus::Delivered)->count(),
+            'pending_orders' => Order::query()->whereIn('status', $this->workflow->slugsForCustomerGroup('pending'))->count(),
+            'processing_orders' => Order::query()->whereIn('status', $this->workflow->slugsForCustomerGroup('processing'))->count(),
+            'delivered_orders' => Order::query()->whereIn('status', $this->workflow->slugsForCustomerGroup('delivered'))->count(),
             'revenue' => (float) (clone $revenueQuery)->sum('grand_total'),
             'month_revenue' => (float) (clone $revenueQuery)
                 ->whereMonth('created_at', now()->month)
@@ -68,10 +72,11 @@ class DashboardService
     public function monthlySales(int $months = 6): Collection
     {
         $start = now()->subMonths($months - 1)->startOfMonth();
+        $excluded = $this->workflow->revenueExcludedSlugs();
 
         $grouped = Order::query()
             ->where('payment_status', PaymentStatus::Paid)
-            ->whereNotIn('status', [OrderStatus::Cancelled, OrderStatus::Refunded])
+            ->whereNotIn('status', $excluded)
             ->where('created_at', '>=', $start)
             ->get(['grand_total', 'created_at'])
             ->groupBy(fn (Order $order): string => $order->created_at->format('Y-m'))
@@ -128,6 +133,7 @@ class DashboardService
     public function recentOrders(int $limit = 5): Collection
     {
         return Order::query()
+            ->with('orderStatus')
             ->latest('created_at')
             ->limit($limit)
             ->get();
@@ -135,11 +141,11 @@ class DashboardService
 
     public function orderStatusBreakdown(): Collection
     {
-        return collect(OrderStatus::cases())->map(function (OrderStatus $status): array {
+        return $this->workflow->active()->map(function ($status): array {
             return [
                 'status' => $status,
-                'label' => str($status->value)->headline()->replace('_', ' ')->value(),
-                'count' => Order::query()->where('status', $status)->count(),
+                'label' => $status->name,
+                'count' => Order::query()->where('status', $status->slug)->count(),
             ];
         });
     }

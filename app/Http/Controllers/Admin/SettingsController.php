@@ -30,7 +30,6 @@ class SettingsController extends Controller
             'whatsapp' => ['nullable', 'string', 'max:50'],
             'address' => ['nullable', 'string', 'max:500'],
             'currency' => ['required', 'string', 'max:10'],
-            'tax_rate' => ['nullable', 'numeric', 'min:0'],
             'shipping_flat_rate' => ['nullable', 'numeric', 'min:0'],
         ]);
 

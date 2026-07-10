@@ -23,7 +23,10 @@ export default function initHeroSwiper() {
         return;
     }
 
+    const slideCount = slider.querySelectorAll('.swiper-slide').length;
     const autoplayDelay = Number(root.dataset.autoplayDelay ?? 5500);
+    const slideLabels = parseSlideLabels(root.dataset.slideLabels);
+    const enableLoop = slideCount > 1;
 
     const swiper = new Swiper(slider, {
         modules: [Autoplay, EffectFade, Navigation, Pagination, Parallax],
@@ -31,8 +34,8 @@ export default function initHeroSwiper() {
         fadeEffect: { crossFade: true },
         speed: 900,
         parallax: true,
-        loop: true,
-        grabCursor: true,
+        loop: enableLoop,
+        grabCursor: enableLoop,
         watchSlidesProgress: true,
         autoplay: {
             delay: autoplayDelay,
@@ -43,8 +46,7 @@ export default function initHeroSwiper() {
             el: root.querySelector('.hero-swiper__pagination'),
             clickable: true,
             renderBullet(index, className) {
-                const labels = ['New Collection', 'Best Sellers', 'Flash Sale', 'Seasonal'];
-                const label = labels[index] ?? `Slide ${index + 1}`;
+                const label = slideLabels[index] ?? `Slide ${index + 1}`;
 
                 return `<button type="button" class="${className}" aria-label="${label}"><span class="hero-swiper__bullet-label">${label}</span></button>`;
             },
@@ -56,8 +58,9 @@ export default function initHeroSwiper() {
         on: {
             init(instance) {
                 updateProgress(instance, progressBar, autoplayDelay);
+                animateSlideContent(instance);
             },
-            autoplayTimeLeft(instance, _time, progress) {
+            autoplayTimeLeft(_instance, _time, progress) {
                 if (progressBar) {
                     progressBar.style.transform = `scaleX(${1 - progress})`;
                 }
@@ -69,10 +72,29 @@ export default function initHeroSwiper() {
         },
     });
 
-    animateSlideContent(swiper);
+    root.classList.add('is-enhanced');
 
-    root.addEventListener('mouseenter', () => swiper.autoplay?.stop());
-    root.addEventListener('mouseleave', () => swiper.autoplay?.start());
+    if (enableLoop) {
+        root.addEventListener('mouseenter', () => swiper.autoplay?.stop());
+        root.addEventListener('mouseleave', () => swiper.autoplay?.start());
+    } else {
+        root.querySelector('.hero-swiper__prev')?.classList.add('hidden');
+        root.querySelector('.hero-swiper__next')?.classList.add('hidden');
+    }
+}
+
+function parseSlideLabels(raw) {
+    if (! raw) {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(raw);
+
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
 }
 
 function animateSlideContent(swiper) {

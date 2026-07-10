@@ -1,5 +1,8 @@
 @props([
     'reviews' => collect(),
+    'badge' => 'Testimonials',
+    'title' => 'Loved by thousands of customers',
+    'subtitle' => 'Real stories from homeowners, contractors, and designers who trust us for premium sanitary ware.',
 ])
 
 @php
@@ -87,9 +90,9 @@
     <div class="ds-container relative">
         <header class="testimonials-section__header">
             <div class="testimonials-section__intro anim-gpu" data-aos="fade-up">
-                <span class="ds-badge-accent">Testimonials</span>
-                <h2 id="testimonials-heading" class="ds-heading-2 mt-3">Loved by thousands of customers</h2>
-                <p class="ds-body-sm mt-2 max-w-2xl">Real stories from homeowners, contractors, and designers who trust us for premium sanitary ware.</p>
+                <span class="ds-badge-accent">{{ $badge }}</span>
+                <h2 id="testimonials-heading" class="ds-heading-2 mt-3">{{ $title }}</h2>
+                <p class="ds-body-sm mt-2 max-w-2xl">{{ $subtitle }}</p>
             </div>
 
             <div class="testimonials-section__score anim-gpu" data-aos="fade-in" data-aos-delay="150">

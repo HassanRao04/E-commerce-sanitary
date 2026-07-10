@@ -4,10 +4,10 @@ namespace App\Services\Admin;
 
 use App\Enums\StockMovementType;
 use App\Models\Inventory;
-use App\Models\ProductVariant;
 use App\Models\StockMovement;
 use App\Repositories\Contracts\InventoryRepositoryInterface;
 use App\Services\ActivityLogService;
+use App\Services\InventoryControlService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -16,6 +16,7 @@ class InventoryService
     public function __construct(
         private readonly InventoryRepositoryInterface $inventory,
         private readonly ActivityLogService $activityLog,
+        private readonly InventoryControlService $inventoryControl,
     ) {}
 
     public function paginatedList(array $filters = [], int $perPage = 20): LengthAwarePaginator
@@ -69,10 +70,6 @@ class InventoryService
 
     private function syncVariantStock(int $variantId): void
     {
-        $total = Inventory::query()
-            ->where('product_variant_id', $variantId)
-            ->sum('quantity_on_hand');
-
-        ProductVariant::whereKey($variantId)->update(['stock_quantity' => $total]);
+        $this->inventoryControl->syncVariantAggregate($variantId);
     }
 }

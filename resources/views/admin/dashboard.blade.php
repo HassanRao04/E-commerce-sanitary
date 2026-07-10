@@ -171,7 +171,7 @@
             <div class="space-y-3">
                 @foreach ($orderStatusBreakdown as $row)
                     @if ($row['count'] > 0)
-                        <a href="{{ route('admin.orders.index', ['status' => $row['status']->value]) }}" class="flex items-center justify-between text-sm hover:bg-gray-50 -mx-2 px-2 py-1 rounded-lg">
+                        <a href="{{ route('admin.orders.index', ['status' => $row['status']->slug]) }}" class="flex items-center justify-between text-sm hover:bg-gray-50 -mx-2 px-2 py-1 rounded-lg">
                             <x-order-status-badge :status="$row['status']" />
                             <span class="font-semibold text-gray-900">{{ number_format($row['count']) }}</span>
                         </a>

@@ -88,6 +88,39 @@ class StorefrontPagesTest extends TestCase
         ])->assertOk()->assertSee($order->order_number);
     }
 
+    public function test_shop_page_loads(): void
+    {
+        $this->get(route('shop.products.index'))
+            ->assertOk()
+            ->assertSee('Shop');
+    }
+
+    public function test_category_page_loads_products(): void
+    {
+        $category = \App\Models\Category::query()->active()->first();
+        $this->assertNotNull($category);
+
+        $this->get(route('shop.categories.show', $category))
+            ->assertOk()
+            ->assertSee($category->name);
+    }
+
+    public function test_legacy_category_url_redirects_to_shop_category_path(): void
+    {
+        $category = \App\Models\Category::query()->active()->first();
+        $this->assertNotNull($category);
+
+        $this->get('/categories/'.$category->slug)
+            ->assertRedirect(route('shop.categories.show', $category));
+    }
+
+    public function test_unknown_category_shows_custom_404_page(): void
+    {
+        $this->get(route('shop.categories.show', ['category' => 'does-not-exist']))
+            ->assertNotFound()
+            ->assertSee('Page not found');
+    }
+
     public function test_products_index_supports_sort_and_filters(): void
     {
         $brand = Brand::query()->where('is_active', true)->first();

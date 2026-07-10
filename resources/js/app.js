@@ -13,6 +13,8 @@ import { productGallery, productPurchase } from './storefront/product-page';
 import initCommerceCart from './storefront/cart-checkout';
 import { initStorefrontAnimations } from './storefront/animations';
 import './admin/product-form';
+import homepageProductPicker from './admin/homepage-product-picker';
+import headerNavEditor from './admin/header-nav-editor';
 
 window.Alpine = Alpine;
 Alpine.data('adminShell', adminShell);
@@ -22,6 +24,8 @@ Alpine.data('storefrontQuickView', storefrontQuickView);
 Alpine.data('shopCatalog', shopCatalog);
 Alpine.data('productGallery', productGallery);
 Alpine.data('productPurchase', productPurchase);
+Alpine.data('homepageProductPicker', homepageProductPicker);
+Alpine.data('headerNavEditor', headerNavEditor);
 
 Alpine.start();
 

@@ -23,7 +23,7 @@ class CartController extends Controller
     {
         $cart = $this->cartService->getCart();
         $pricing = $this->pricing->calculate($cart);
-        $totals = collect($pricing)->only(['subtotal', 'discount', 'shipping', 'tax', 'grand_total'])->all();
+        $totals = collect($pricing)->only(['subtotal', 'discount', 'shipping', 'service_charge', 'handling_charge', 'tax', 'grand_total'])->all();
 
         return view('storefront.cart.index', compact('cart', 'totals', 'pricing'));
     }
