@@ -6,7 +6,7 @@
 <div id="contact-content" class="mt-8 rounded-xl bg-white shadow-sm ring-1 ring-gray-200/60 overflow-hidden">
     <div class="px-6 py-4 border-b border-gray-100">
         <h3 class="font-semibold text-gray-900">Contact information</h3>
-        <p class="text-sm text-gray-500">Contact page copy and business details shown on the storefront contact page and footer.</p>
+        <p class="text-sm text-gray-500">Contact page copy and business details shown on the storefront contact page and footer. Notification toggles and support email are managed in <a href="{{ route('admin.settings.index') }}" class="text-indigo-600 hover:underline">Site Settings</a>.</p>
     </div>
 
     @can('homepage.manage')

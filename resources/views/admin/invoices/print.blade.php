@@ -45,7 +45,10 @@
         <tbody>
             @foreach ($invoice->items as $item)
                 <tr>
-                    <td>{{ trim($item->product_name.' '.($item->variant_name ?? '')) }}</td>
+                    <td>
+                        {{ trim($item->product_name.' '.($item->variant_name ?? '')) }}
+                        <x-order.item-offer-meta :item="$item" class="muted" />
+                    </td>
                     <td>{{ $item->sku }}</td>
                     <td>{{ $item->quantity }}</td>
                     <td class="text-right">{{ config('shop.currency_symbol') }} {{ number_format($item->unit_price, 2) }}</td>
@@ -56,16 +59,10 @@
     </table>
 
     <div class="totals" style="max-width: 320px; margin-left: auto;">
-        <div><span>Subtotal</span><span>{{ config('shop.currency_symbol') }} {{ number_format($invoice->subtotal, 2) }}</span></div>
-        @if ($invoice->discount_total > 0)
-            <div><span>Discount</span><span>- {{ config('shop.currency_symbol') }} {{ number_format($invoice->discount_total, 2) }}</span></div>
-        @endif
-        @if ($invoice->shipping_total > 0)
-            <div><span>Shipping</span><span>{{ config('shop.currency_symbol') }} {{ number_format($invoice->shipping_total, 2) }}</span></div>
-        @endif
-        @if ($invoice->tax_total > 0)
-            <div><span>Tax</span><span>{{ config('shop.currency_symbol') }} {{ number_format($invoice->tax_total, 2) }}</span></div>
-        @endif
-        <div class="grand"><span>Total</span><span>{{ $invoice->formatted_total }}</span></div>
+        <x-order.pricing-summary
+            :record="$invoice"
+            :show-charges="true"
+            class="!space-y-1"
+        />
     </div>
 @endsection

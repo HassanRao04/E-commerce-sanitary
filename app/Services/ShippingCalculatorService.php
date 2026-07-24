@@ -10,12 +10,14 @@ class ShippingCalculatorService
 {
     public function __construct(
         private readonly ShippingSettingsService $settings,
+        private readonly ProductOfferCalculatorService $productOffers,
     ) {}
 
     /**
      * @return array{
      *     shipping: float,
      *     shipping_rate: float,
+     *     shipping_discount: float,
      *     free_shipping_threshold: float,
      *     qualifies_for_free_shipping: bool,
      *     method: string|null
@@ -24,33 +26,79 @@ class ShippingCalculatorService
     public function calculate(Cart $cart, float $discountedSubtotal): array
     {
         $threshold = $this->settings->freeShippingThreshold();
-        $qualifiesForFreeShipping = $threshold > 0 && $discountedSubtotal >= $threshold;
+        $method = $this->settings->defaultMethod();
+        $grossShipping = $this->calculateForMethod($method, $cart);
 
-        if ($qualifiesForFreeShipping) {
+        if ($waiver = $this->resolveFreeShippingWaiver($cart, $discountedSubtotal)) {
             return [
                 'shipping' => 0.0,
                 'shipping_rate' => 0.0,
+                'shipping_discount' => $grossShipping,
                 'free_shipping_threshold' => $threshold,
                 'qualifies_for_free_shipping' => true,
-                'method' => 'free',
+                'method' => $waiver,
             ];
         }
 
-        $method = $this->settings->defaultMethod();
-
-        $shipping = round(match ($method) {
-            ShippingMethod::Product => $this->calculateProductBased($cart),
-            ShippingMethod::Category => $this->calculateCategoryBased($cart),
-            ShippingMethod::Flat => $this->settings->flatRateAmount(),
-        }, 2);
-
         return [
-            'shipping' => $shipping,
-            'shipping_rate' => $shipping,
+            'shipping' => $grossShipping,
+            'shipping_rate' => $grossShipping,
+            'shipping_discount' => 0.0,
             'free_shipping_threshold' => $threshold,
             'qualifies_for_free_shipping' => false,
             'method' => $method->value,
         ];
+    }
+
+    /**
+     * Free-shipping rules (evaluated before the selected charge method).
+     * Returns a method label when shipping is waived, otherwise null.
+     */
+    private function resolveFreeShippingWaiver(Cart $cart, float $orderTotal): ?string
+    {
+        // Scenario 4 — order total threshold
+        if (
+            $this->settings->isFreeShippingEnabled()
+            && $orderTotal >= $this->settings->configuredFreeShippingThreshold()
+        ) {
+            return 'free';
+        }
+
+        // Scenario 5 — every cart product is marked Free Shipping = Yes
+        if ($this->settings->cartQualifiesForProductFreeShipping($cart)) {
+            return 'free_product';
+        }
+
+        // Product offer Buy-X free shipping
+        if ($this->productOffers->cartQualifiesForOfferFreeShipping($cart)) {
+            return 'free_offer';
+        }
+
+        return null;
+    }
+
+    /**
+     * Charge methods registry. Add a ShippingMethod case + calculator here
+     * (and an enable flag on ShippingSetting) to extend without rewriting checkout.
+     *
+     * @return array<string, callable(Cart): float>
+     */
+    protected function methodCalculators(): array
+    {
+        return [
+            ShippingMethod::Flat->value => fn (Cart $cart): float => $this->settings->flatRateAmount(),
+            ShippingMethod::Product->value => fn (Cart $cart): float => $this->calculateProductBased($cart),
+            ShippingMethod::Category->value => fn (Cart $cart): float => $this->calculateCategoryBased($cart),
+        ];
+    }
+
+    private function calculateForMethod(ShippingMethod $method, Cart $cart): float
+    {
+        $calculators = $this->methodCalculators();
+        $calculator = $calculators[$method->value]
+            ?? $calculators[ShippingMethod::Flat->value];
+
+        return round($calculator($cart), 2);
     }
 
     private function calculateProductBased(Cart $cart): float
@@ -106,7 +154,7 @@ class ShippingCalculatorService
      */
     private function resolveProductLineRate(CartItem $item, array $productRates, array $categoryRates): ?float
     {
-        if (isset($productRates[$item->product_id])) {
+        if (array_key_exists($item->product_id, $productRates)) {
             return $productRates[$item->product_id];
         }
 

@@ -108,10 +108,10 @@
 
         <div class="testimonials-carousel mt-10 anim-gpu" data-aos="fade-right" data-aos-delay="200">
             <div class="testimonials-carousel__nav">
-                <button type="button" class="testimonials-carousel__prev ds-btn-icon !h-11 !w-11" aria-label="Previous testimonial" data-gsap-hover="scale">
+                <button type="button" class="testimonials-carousel__prev ds-btn-icon ds-hover-scale !h-11 !w-11" aria-label="Previous testimonial">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 </button>
-                <button type="button" class="testimonials-carousel__next ds-btn-icon !h-11 !w-11" aria-label="Next testimonial" data-gsap-hover="scale">
+                <button type="button" class="testimonials-carousel__next ds-btn-icon ds-hover-scale !h-11 !w-11" aria-label="Next testimonial">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </button>
             </div>

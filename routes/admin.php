@@ -8,8 +8,11 @@ use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\HomepageController;
+use App\Http\Controllers\Admin\InquiryController;
+use App\Http\Controllers\Admin\InfluencerPerformanceController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\InvoiceController;
+use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\OrderController;
 use App\Http\Controllers\Admin\OrderWorkflowController;
 use App\Http\Controllers\Admin\PaymentController;
@@ -54,10 +57,13 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
     Route::middleware('permission:users.create')->group(function (): void {
         Route::get('users/create', [UserController::class, 'create'])->name('users.create');
         Route::post('users', [UserController::class, 'store'])->name('users.store');
+        Route::get('influencers/create', [UserController::class, 'createInfluencer'])->name('influencers.create');
+        Route::post('influencers', [UserController::class, 'storeInfluencer'])->name('influencers.store');
     });
 
     Route::middleware('permission:users.view')->group(function (): void {
         Route::get('users', [UserController::class, 'index'])->name('users.index');
+        Route::get('influencers', [UserController::class, 'influencers'])->name('influencers.index');
         Route::get('users/{user}', [UserController::class, 'show'])->name('users.show');
     });
 
@@ -67,10 +73,15 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
         Route::patch('users/{user}/role', [UserController::class, 'updateRole'])->name('users.role.update');
         Route::delete('users/{user}/role', [UserController::class, 'destroyRole'])->name('users.role.destroy');
         Route::post('users/bulk', [UserController::class, 'bulkAction'])->name('users.bulk');
+        Route::get('influencers/{influencer}/edit', [UserController::class, 'editInfluencer'])->name('influencers.edit');
+        Route::put('influencers/{influencer}', [UserController::class, 'updateInfluencer'])->name('influencers.update');
+        Route::patch('influencers/{influencer}/activate', [UserController::class, 'activateInfluencer'])->name('influencers.activate');
+        Route::patch('influencers/{influencer}/deactivate', [UserController::class, 'deactivateInfluencer'])->name('influencers.deactivate');
     });
 
     Route::middleware('permission:users.delete')->group(function (): void {
         Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+        Route::delete('influencers/{influencer}', [UserController::class, 'destroyInfluencer'])->name('influencers.destroy');
     });
 
     Route::middleware('can:customers.view')->group(function (): void {
@@ -155,7 +166,22 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
 
     Route::middleware('can:coupons.view')->group(function (): void {
         Route::get('coupons', [CouponController::class, 'index'])->name('coupons.index');
+        Route::get('influencer-performance', [InfluencerPerformanceController::class, 'index'])
+            ->name('influencer-performance.index');
+        Route::get('influencer-performance/{influencer}', [InfluencerPerformanceController::class, 'show'])
+            ->name('influencer-performance.show');
+        Route::get('influencer-performance/{influencer}/export/{format}', [InfluencerPerformanceController::class, 'export'])
+            ->whereIn('format', ['csv', 'excel'])
+            ->name('influencer-performance.export');
         Route::middleware('can:coupons.manage')->group(function (): void {
+            Route::patch('influencer-performance/{influencer}/orders/{order}/mark-paid', [InfluencerPerformanceController::class, 'markPaid'])
+                ->name('influencer-performance.mark-paid');
+            Route::post('influencer-performance/{influencer}/orders/{order}/pay', [InfluencerPerformanceController::class, 'payCommission'])
+                ->name('influencer-performance.pay-commission');
+            Route::post('influencer-performance/{influencer}/orders/mark-paid', [InfluencerPerformanceController::class, 'markSelectedPaid'])
+                ->name('influencer-performance.mark-selected-paid');
+            Route::post('influencer-performance/{influencer}/payouts', [InfluencerPerformanceController::class, 'recordPayout'])
+                ->name('influencer-performance.payout');
             Route::get('coupons/create', [CouponController::class, 'create'])->name('coupons.create');
             Route::post('coupons', [CouponController::class, 'store'])->name('coupons.store');
             Route::get('coupons/{coupon}/edit', [CouponController::class, 'edit'])->name('coupons.edit');
@@ -202,6 +228,19 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
     });
 
     // ── Engagement ───────────────────────────────────────────────────────
+    Route::middleware('can:notifications.view')->group(function (): void {
+        Route::get('contact-messages', [InquiryController::class, 'index'])->name('inquiries.index');
+        Route::get('contact-messages/{inquiry}', [InquiryController::class, 'show'])->name('inquiries.show');
+        Route::patch('contact-messages/{inquiry}/status', [InquiryController::class, 'updateStatus'])
+            ->middleware('can:notifications.manage')
+            ->name('inquiries.status');
+        Route::delete('contact-messages/{inquiry}', [InquiryController::class, 'destroy'])
+            ->middleware('can:notifications.manage')
+            ->name('inquiries.destroy');
+        Route::post('notifications/{notification}/open', [NotificationController::class, 'open'])
+            ->name('notifications.open');
+    });
+
     Route::middleware('can:reviews.view')->group(function (): void {
         Route::get('reviews', [ReviewController::class, 'index'])->name('reviews.index');
         Route::get('reviews/settings', [ReviewController::class, 'settings'])->name('reviews.settings');

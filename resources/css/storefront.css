@@ -1,0 +1,21 @@
+@import './design-system/tokens.css';
+@import './design-system/components.css';
+@import './storefront/hero.css';
+@import './storefront/product-card.css';
+@import './storefront/category-card.css';
+@import './storefront/product-carousel.css';
+@import './storefront/trust-sections.css';
+@import './storefront/testimonials.css';
+@import './storefront/newsletter.css';
+@import './storefront/footer.css';
+@import './storefront/site-logo.css';
+@import './storefront/shop.css';
+@import './storefront/product-page.css';
+@import './storefront/cart-checkout.css';
+@import './storefront/responsive.css';
+@import './storefront/animations.css';
+@import './storefront/premium-polish.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

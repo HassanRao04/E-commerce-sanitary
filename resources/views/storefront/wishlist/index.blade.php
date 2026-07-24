@@ -21,7 +21,7 @@
                 @foreach ($items as $item)
                     @if ($item->product)
                         <div class="relative">
-                            @include('storefront.partials.product-card', ['product' => $item->product])
+                            <x-storefront.product-card :product="$item->product" :in-wishlist="true" />
                             <form action="{{ route('shop.wishlist.destroy', $item->product_id) }}" method="POST" class="absolute top-3 right-3">
                                 @csrf
                                 @method('DELETE')

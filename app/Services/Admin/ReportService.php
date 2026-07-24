@@ -2,9 +2,12 @@
 
 namespace App\Services\Admin;
 
+use App\Enums\CommissionLedgerStatus;
+use App\Enums\CommissionLedgerType;
 use App\Enums\PaymentStatus;
 use App\Enums\ShipmentStatus;
 use App\Models\Customer;
+use App\Models\InfluencerCommissionTransaction;
 use App\Models\Inventory;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -78,6 +81,18 @@ class ReportService
             'shipping-status' => $this->shippingStatusReport($from, $to),
             'shipping-courier' => $this->shippingCourierReport($from, $to),
             'shipping-fulfillment' => $this->shippingFulfillmentReport($from, $to),
+            'influencer-monthly-sales' => $this->influencerMonthlySales($from, $to),
+            'influencer-yearly-sales' => $this->influencerYearlySales($from, $to),
+            'influencer-top' => $this->influencerTop($from, $to),
+            'influencer-lowest' => $this->influencerLowest($from, $to),
+            'influencer-commission' => $this->influencerHighestCommission($from, $to),
+            'influencer-pending-payout' => $this->influencerPendingPayout($from, $to),
+            'influencer-paid-payout' => $this->influencerPaidPayout($from, $to),
+            'influencer-coupon-usage' => $this->influencerCouponUsage($from, $to),
+            'influencer-monthly-commission' => $this->influencerMonthlyCommission($from, $to),
+            'influencer-yearly-commission' => $this->influencerYearlyCommission($from, $to),
+            'influencer-aov' => $this->influencerAverageOrderValue($from, $to),
+            'influencer-repeat-customers' => $this->influencerRepeatCustomers($from, $to),
             default => abort(404),
         };
     }
@@ -140,6 +155,20 @@ class ReportService
                     'active_month' => Customer::query()
                         ->whereHas('orders', fn (Builder $q) => $this->applyPaidOrderConstraints($q, $monthStart, $monthEnd))
                         ->count(),
+                ],
+                'influencer' => [
+                    'month_revenue' => (float) (clone $paid)
+                        ->whereNotNull('influencer_id')
+                        ->whereBetween('created_at', [$monthStart, $monthEnd])
+                        ->sum('grand_total'),
+                    'month_orders' => (clone $paid)
+                        ->whereNotNull('influencer_id')
+                        ->whereBetween('created_at', [$monthStart, $monthEnd])
+                        ->count(),
+                    'month_commission' => (float) (clone $paid)
+                        ->whereNotNull('influencer_id')
+                        ->whereBetween('created_at', [$monthStart, $monthEnd])
+                        ->sum('influencer_commission_amount'),
                 ],
             ],
         ];
@@ -504,6 +533,290 @@ class ReportService
         ];
     }
 
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function influencerMonthlySales(Carbon $from, Carbon $to): array
+    {
+        return $this->salesPayload(
+            $this->aggregateInfluencerOrdersByKey($from, $to, 'Y-m', 'M Y'),
+            'Influencer monthly revenue',
+        );
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function influencerYearlySales(Carbon $from, Carbon $to): array
+    {
+        return $this->salesPayload(
+            $this->aggregateInfluencerOrdersByKey($from, $to, 'Y', 'Y'),
+            'Influencer yearly revenue',
+        );
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function influencerTop(Carbon $from, Carbon $to): array
+    {
+        $rows = $this->influencerRankingRows($from, $to)
+            ->sortByDesc('revenue')
+            ->take(20)
+            ->values();
+
+        return $this->influencerRankingPayload($rows, 'Top influencer revenue', 'bar');
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function influencerLowest(Carbon $from, Carbon $to): array
+    {
+        $rows = $this->influencerRankingRows($from, $to)
+            ->sortBy('revenue')
+            ->take(20)
+            ->values();
+
+        return $this->influencerRankingPayload($rows, 'Lowest influencer revenue', 'bar');
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function influencerHighestCommission(Carbon $from, Carbon $to): array
+    {
+        $rows = $this->influencerRankingRows($from, $to)
+            ->sortByDesc('commission')
+            ->take(20)
+            ->values();
+
+        return [
+            'summary' => [
+                'total_commission' => (float) $rows->sum('commission'),
+                'total_revenue' => (float) $rows->sum('revenue'),
+                'influencer_count' => $rows->count(),
+            ],
+            'rows' => $rows,
+            'chart' => [
+                'type' => 'bar',
+                'label' => 'Commission generated',
+                'labels' => $rows->pluck('label')->all(),
+                'values' => $rows->pluck('commission')->all(),
+            ],
+        ];
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function influencerPendingPayout(Carbon $from, Carbon $to): array
+    {
+        $rows = $this->influencerAttributedOrdersQuery($from, $to)
+            ->whereNull('influencer_commission_paid_at')
+            ->with(['influencer:id,name', 'trackedCoupon:id,code'])
+            ->latest('created_at')
+            ->get([
+                'id',
+                'order_number',
+                'influencer_id',
+                'coupon_id',
+                'coupon_code',
+                'grand_total',
+                'influencer_commission_amount',
+                'created_at',
+            ])
+            ->map(fn (Order $order): array => [
+                'label' => $order->order_number,
+                'influencer' => $order->influencer?->name ?? '—',
+                'coupon' => $order->trackedCoupon?->code ?? $order->coupon_code ?? '—',
+                'date' => $order->created_at?->format('Y-m-d') ?? '—',
+                'revenue' => round((float) $order->grand_total, 2),
+                'commission' => round((float) $order->influencer_commission_amount, 2),
+                'status' => 'Pending',
+            ])
+            ->values();
+
+        return [
+            'summary' => [
+                'pending_orders' => $rows->count(),
+                'pending_commission' => (float) $rows->sum('commission'),
+                'pending_revenue' => (float) $rows->sum('revenue'),
+            ],
+            'rows' => $rows,
+            'chart' => [
+                'type' => 'bar',
+                'label' => 'Pending commission by order',
+                'labels' => $rows->take(20)->pluck('label')->all(),
+                'values' => $rows->take(20)->pluck('commission')->all(),
+            ],
+        ];
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function influencerPaidPayout(Carbon $from, Carbon $to): array
+    {
+        $rows = InfluencerCommissionTransaction::query()
+            ->where('type', CommissionLedgerType::Debit)
+            ->where('status', CommissionLedgerStatus::Completed)
+            ->whereBetween('created_at', [$from, $to])
+            ->with([
+                'influencer:id,name',
+                'referenceOrder:id,order_number',
+                'creator:id,name,first_name,last_name',
+            ])
+            ->latest('created_at')
+            ->get()
+            ->map(fn (InfluencerCommissionTransaction $tx): array => [
+                'label' => $tx->referenceOrder?->order_number ?? 'Manual payout',
+                'influencer' => $tx->influencer?->name ?? '—',
+                'admin' => $tx->creator?->name ?? '—',
+                'date' => $tx->created_at?->format('Y-m-d') ?? '—',
+                'amount' => round((float) ($tx->amount ?? 0), 2),
+                'payment_note' => $tx->admin_notes ?? '—',
+                'transaction_id' => $tx->transaction_id ?? '—',
+                'status' => $tx->displayStatus(),
+            ])
+            ->values();
+
+        return [
+            'summary' => [
+                'payout_count' => $rows->count(),
+                'total_paid' => (float) $rows->sum('amount'),
+            ],
+            'rows' => $rows,
+            'chart' => [
+                'type' => 'bar',
+                'label' => 'Paid payouts',
+                'labels' => $rows->take(20)->pluck('label')->all(),
+                'values' => $rows->take(20)->pluck('amount')->all(),
+            ],
+        ];
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function influencerMonthlyCommission(Carbon $from, Carbon $to): array
+    {
+        return $this->commissionPayload(
+            $this->aggregateInfluencerCommissionByKey($from, $to, 'Y-m', 'M Y'),
+            'Monthly commission',
+        );
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function influencerYearlyCommission(Carbon $from, Carbon $to): array
+    {
+        return $this->commissionPayload(
+            $this->aggregateInfluencerCommissionByKey($from, $to, 'Y', 'Y'),
+            'Yearly commission',
+        );
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function influencerCouponUsage(Carbon $from, Carbon $to): array
+    {
+        $rows = $this->influencerAttributedOrdersQuery($from, $to)
+            ->with(['trackedCoupon:id,code', 'influencer:id,name'])
+            ->get([
+                'id',
+                'coupon_id',
+                'coupon_code',
+                'influencer_id',
+                'grand_total',
+                'discount_total',
+                'influencer_commission_amount',
+            ])
+            ->groupBy(fn (Order $order): string => (string) ($order->coupon_id ?: $order->coupon_code ?: 'unknown'))
+            ->map(function (Collection $orders): array {
+                $first = $orders->first();
+
+                return [
+                    'label' => $first->trackedCoupon?->code ?? $first->coupon_code ?? '—',
+                    'influencer' => $first->influencer?->name ?? '—',
+                    'uses' => $orders->count(),
+                    'revenue' => round((float) $orders->sum('grand_total'), 2),
+                    'discount' => round((float) $orders->sum('discount_total'), 2),
+                    'commission' => round((float) $orders->sum('influencer_commission_amount'), 2),
+                ];
+            })
+            ->sortByDesc('uses')
+            ->values();
+
+        return [
+            'summary' => [
+                'total_uses' => (int) $rows->sum('uses'),
+                'total_revenue' => (float) $rows->sum('revenue'),
+                'total_discount' => (float) $rows->sum('discount'),
+                'coupon_count' => $rows->count(),
+            ],
+            'rows' => $rows,
+            'chart' => [
+                'type' => 'bar',
+                'label' => 'Coupon uses',
+                'labels' => $rows->pluck('label')->all(),
+                'values' => $rows->pluck('uses')->all(),
+            ],
+        ];
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function influencerAverageOrderValue(Carbon $from, Carbon $to): array
+    {
+        $rows = $this->influencerRankingRows($from, $to)
+            ->sortByDesc('aov')
+            ->take(20)
+            ->values();
+
+        $totalOrders = (int) $rows->sum('orders');
+        $totalRevenue = (float) $rows->sum('revenue');
+
+        return [
+            'summary' => [
+                'average_order_value' => $totalOrders > 0 ? round($totalRevenue / $totalOrders, 2) : 0.0,
+                'total_revenue' => $totalRevenue,
+                'total_orders' => $totalOrders,
+            ],
+            'rows' => $rows,
+            'chart' => [
+                'type' => 'bar',
+                'label' => 'Average order value',
+                'labels' => $rows->pluck('label')->all(),
+                'values' => $rows->pluck('aov')->all(),
+            ],
+        ];
+    }
+
+    /** @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>} */
+    public function influencerRepeatCustomers(Carbon $from, Carbon $to): array
+    {
+        $rows = $this->influencerAttributedOrdersQuery($from, $to)
+            ->get([
+                'user_id',
+                'customer_name',
+                'customer_email',
+                'grand_total',
+                'influencer_commission_amount',
+            ])
+            ->groupBy(fn (Order $order): string => (string) ($order->user_id ?: $order->customer_email))
+            ->map(function (Collection $orders): array {
+                $first = $orders->first();
+
+                return [
+                    'label' => $first->customer_name,
+                    'email' => $first->customer_email,
+                    'orders' => $orders->count(),
+                    'revenue' => round((float) $orders->sum('grand_total'), 2),
+                    'commission' => round((float) $orders->sum('influencer_commission_amount'), 2),
+                ];
+            })
+            ->filter(fn (array $row): bool => $row['orders'] >= 2)
+            ->sortByDesc('orders')
+            ->values();
+
+        return [
+            'summary' => [
+                'repeat_customers' => $rows->count(),
+                'total_orders' => (int) $rows->sum('orders'),
+                'total_revenue' => (float) $rows->sum('revenue'),
+            ],
+            'rows' => $rows,
+            'chart' => [
+                'type' => 'bar',
+                'label' => 'Repeat customer orders',
+                'labels' => $rows->take(20)->pluck('label')->all(),
+                'values' => $rows->take(20)->pluck('orders')->all(),
+            ],
+        ];
+    }
+
     public function exportHeaders(string $type): array
     {
         return match ($type) {
@@ -516,6 +829,15 @@ class ReportService
             'shipping-status' => ['Status', 'Shipments', 'Shipping Revenue'],
             'shipping-courier' => ['Courier', 'Shipments', 'Delivered', 'Avg Delivery Days'],
             'shipping-fulfillment' => ['Order', 'Courier', 'Tracking', 'Status', 'Shipped', 'Delivered', 'Shipping Fee'],
+            'influencer-monthly-sales', 'influencer-yearly-sales' => ['Period', 'Orders', 'Revenue'],
+            'influencer-monthly-commission', 'influencer-yearly-commission' => ['Period', 'Orders', 'Commission'],
+            'influencer-top', 'influencer-lowest' => ['Influencer', 'Orders', 'Revenue', 'Commission', 'AOV'],
+            'influencer-commission' => ['Influencer', 'Orders', 'Commission', 'Revenue'],
+            'influencer-pending-payout' => ['Order', 'Influencer', 'Coupon', 'Date', 'Revenue', 'Commission', 'Status'],
+            'influencer-paid-payout' => ['Reference', 'Influencer', 'Admin', 'Date', 'Amount', 'Payment Note', 'Transaction ID', 'Status'],
+            'influencer-coupon-usage' => ['Coupon', 'Influencer', 'Uses', 'Revenue', 'Discount', 'Commission'],
+            'influencer-aov' => ['Influencer', 'Orders', 'Revenue', 'AOV'],
+            'influencer-repeat-customers' => ['Customer', 'Email', 'Orders', 'Revenue', 'Commission'],
             default => ['Label', 'Value'],
         };
     }
@@ -524,8 +846,12 @@ class ReportService
     public function exportRows(string $type, Collection $rows): array
     {
         return match ($type) {
-            'daily-sales', 'weekly-sales', 'monthly-sales', 'yearly-sales' => $rows->map(fn ($r) => [
+            'daily-sales', 'weekly-sales', 'monthly-sales', 'yearly-sales',
+            'influencer-monthly-sales', 'influencer-yearly-sales' => $rows->map(fn ($r) => [
                 $r['label'], $r['orders'], $r['revenue'],
+            ])->all(),
+            'influencer-monthly-commission', 'influencer-yearly-commission' => $rows->map(fn ($r) => [
+                $r['label'], $r['orders'], $r['commission'],
             ])->all(),
             'product-sales' => $rows->map(fn ($r) => [
                 $r['label'], $r['sku'], $r['units_sold'], $r['revenue'],
@@ -550,6 +876,27 @@ class ReportService
             ])->all(),
             'shipping-fulfillment' => $rows->map(fn ($r) => [
                 $r['label'], $r['courier'], $r['tracking'], $r['status'], $r['shipped_at'], $r['delivered_at'], $r['shipping_fee'],
+            ])->all(),
+            'influencer-top', 'influencer-lowest' => $rows->map(fn ($r) => [
+                $r['label'], $r['orders'], $r['revenue'], $r['commission'], $r['aov'],
+            ])->all(),
+            'influencer-commission' => $rows->map(fn ($r) => [
+                $r['label'], $r['orders'], $r['commission'], $r['revenue'],
+            ])->all(),
+            'influencer-pending-payout' => $rows->map(fn ($r) => [
+                $r['label'], $r['influencer'], $r['coupon'], $r['date'], $r['revenue'], $r['commission'], $r['status'],
+            ])->all(),
+            'influencer-paid-payout' => $rows->map(fn ($r) => [
+                $r['label'], $r['influencer'], $r['admin'], $r['date'], $r['amount'], $r['payment_note'], $r['transaction_id'], $r['status'],
+            ])->all(),
+            'influencer-coupon-usage' => $rows->map(fn ($r) => [
+                $r['label'], $r['influencer'], $r['uses'], $r['revenue'], $r['discount'], $r['commission'],
+            ])->all(),
+            'influencer-aov' => $rows->map(fn ($r) => [
+                $r['label'], $r['orders'], $r['revenue'], $r['aov'],
+            ])->all(),
+            'influencer-repeat-customers' => $rows->map(fn ($r) => [
+                $r['label'], $r['email'], $r['orders'], $r['revenue'], $r['commission'],
             ])->all(),
             default => [],
         };
@@ -598,6 +945,123 @@ class ReportService
             'rows' => $rows,
             'chart' => [
                 'type' => 'line',
+                'label' => $chartLabel,
+                'labels' => $rows->pluck('label')->all(),
+                'values' => $rows->pluck('revenue')->all(),
+            ],
+        ];
+    }
+
+    private function influencerAttributedOrdersQuery(Carbon $from, Carbon $to): Builder
+    {
+        return $this->paidOrdersQuery()
+            ->whereNotNull('influencer_id')
+            ->whereBetween('created_at', [$from, $to]);
+    }
+
+    private function aggregateInfluencerOrdersByKey(
+        Carbon $from,
+        Carbon $to,
+        string $keyFormat,
+        string $labelFormat,
+    ): Collection {
+        return $this->influencerAttributedOrdersQuery($from, $to)
+            ->get(['grand_total', 'created_at'])
+            ->groupBy(fn (Order $order): string => $order->created_at->format($keyFormat))
+            ->sortKeys()
+            ->map(fn (Collection $items, string $key): array => [
+                'label' => Carbon::parse($key)->format($labelFormat),
+                'orders' => $items->count(),
+                'revenue' => (float) $items->sum('grand_total'),
+            ])
+            ->values();
+    }
+
+    private function aggregateInfluencerCommissionByKey(
+        Carbon $from,
+        Carbon $to,
+        string $keyFormat,
+        string $labelFormat,
+    ): Collection {
+        return $this->influencerAttributedOrdersQuery($from, $to)
+            ->get(['influencer_commission_amount', 'created_at'])
+            ->groupBy(fn (Order $order): string => $order->created_at->format($keyFormat))
+            ->sortKeys()
+            ->map(fn (Collection $items, string $key): array => [
+                'label' => Carbon::parse($key)->format($labelFormat),
+                'orders' => $items->count(),
+                'commission' => round((float) $items->sum('influencer_commission_amount'), 2),
+            ])
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, array{label: string, orders: int, commission: float}>  $rows
+     * @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>}
+     */
+    private function commissionPayload(Collection $rows, string $chartLabel): array
+    {
+        return [
+            'summary' => [
+                'total_commission' => (float) $rows->sum('commission'),
+                'total_orders' => (int) $rows->sum('orders'),
+                'average_commission' => $rows->sum('orders') > 0
+                    ? round($rows->sum('commission') / $rows->sum('orders'), 2)
+                    : 0.0,
+            ],
+            'rows' => $rows,
+            'chart' => [
+                'type' => 'line',
+                'label' => $chartLabel,
+                'labels' => $rows->pluck('label')->all(),
+                'values' => $rows->pluck('commission')->all(),
+            ],
+        ];
+    }
+
+    /** @return Collection<int, array{label: string, orders: int, revenue: float, commission: float, aov: float}> */
+    private function influencerRankingRows(Carbon $from, Carbon $to): Collection
+    {
+        return $this->influencerAttributedOrdersQuery($from, $to)
+            ->with('influencer:id,name')
+            ->get([
+                'influencer_id',
+                'grand_total',
+                'influencer_commission_amount',
+            ])
+            ->groupBy('influencer_id')
+            ->map(function (Collection $orders): array {
+                $first = $orders->first();
+                $ordersCount = $orders->count();
+                $revenue = round((float) $orders->sum('grand_total'), 2);
+
+                return [
+                    'label' => $first->influencer?->name ?? 'Unknown',
+                    'orders' => $ordersCount,
+                    'revenue' => $revenue,
+                    'commission' => round((float) $orders->sum('influencer_commission_amount'), 2),
+                    'aov' => $ordersCount > 0 ? round($revenue / $ordersCount, 2) : 0.0,
+                ];
+            })
+            ->values();
+    }
+
+    /**
+     * @param  Collection<int, array{label: string, orders: int, revenue: float, commission: float, aov: float}>  $rows
+     * @return array{summary: array<string, float|int>, rows: Collection, chart: array<string, mixed>}
+     */
+    private function influencerRankingPayload(Collection $rows, string $chartLabel, string $chartType = 'bar'): array
+    {
+        return [
+            'summary' => [
+                'total_revenue' => (float) $rows->sum('revenue'),
+                'total_orders' => (int) $rows->sum('orders'),
+                'total_commission' => (float) $rows->sum('commission'),
+                'influencer_count' => $rows->count(),
+            ],
+            'rows' => $rows,
+            'chart' => [
+                'type' => $chartType,
                 'label' => $chartLabel,
                 'labels' => $rows->pluck('label')->all(),
                 'values' => $rows->pluck('revenue')->all(),

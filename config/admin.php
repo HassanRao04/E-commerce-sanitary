@@ -34,6 +34,13 @@ return [
                     'active' => 'admin.users.*',
                 ],
                 [
+                    'label' => 'Influencers',
+                    'route' => 'admin.influencers.index',
+                    'permission' => 'users.view',
+                    'icon' => 'users',
+                    'active' => 'admin.influencers.*',
+                ],
+                [
                     'label' => 'Customers',
                     'route' => 'admin.customers.index',
                     'permission' => 'customers.view',
@@ -121,6 +128,13 @@ return [
                     'active' => 'admin.coupons.*',
                 ],
                 [
+                    'label' => 'Influencer Performance',
+                    'route' => 'admin.influencer-performance.index',
+                    'permission' => 'coupons.view',
+                    'icon' => 'chart-bar',
+                    'active' => 'admin.influencer-performance.*',
+                ],
+                [
                     'label' => 'Shipments',
                     'route' => 'admin.shipping.index',
                     'permission' => 'shipping.view',
@@ -159,6 +173,13 @@ return [
                     'permission' => 'reviews.view',
                     'icon' => 'star',
                     'active' => 'admin.reviews.*',
+                ],
+                [
+                    'label' => 'Contact Messages',
+                    'route' => 'admin.inquiries.index',
+                    'permission' => 'notifications.view',
+                    'icon' => 'document-text',
+                    'active' => 'admin.inquiries.*',
                 ],
             ],
         ],
@@ -270,6 +291,10 @@ return [
         'reviews' => [
             'view' => ['super-admin', 'admin', 'manager', 'content-manager'],
             'moderate' => ['super-admin', 'admin', 'manager', 'content-manager'],
+        ],
+        'notifications' => [
+            'view' => ['super-admin', 'admin', 'manager', 'sales-staff', 'content-manager'],
+            'manage' => ['super-admin', 'admin', 'manager', 'content-manager'],
         ],
         'reports' => [
             'view' => ['super-admin', 'admin', 'manager', 'sales-staff'],

@@ -52,6 +52,7 @@ class ShippingSettingsTest extends TestCase
                     [
                         'product_id' => $product->id,
                         'amount' => 275,
+                        'free_shipping' => '1',
                         'is_active' => '1',
                     ],
                 ],
@@ -70,13 +71,17 @@ class ShippingSettingsTest extends TestCase
 
         $settings = ShippingSetting::current()->fresh();
         $this->assertTrue($settings->flat_rate_enabled);
+        $this->assertFalse($settings->product_rate_enabled);
+        $this->assertFalse($settings->category_rate_enabled);
         $this->assertEquals(150.0, (float) $settings->flat_rate_amount);
         $this->assertEquals(6000.0, (float) $settings->free_shipping_threshold);
         $this->assertEquals(ShippingMethod::Flat, $settings->default_method);
+        $this->assertEquals(ShippingMethod::Flat, app(ShippingSettingsService::class)->defaultMethod());
 
         $this->assertDatabaseHas('product_shipping_rates', [
             'product_id' => $product->id,
             'amount' => 275,
+            'free_shipping' => true,
             'is_active' => true,
         ]);
 
@@ -85,6 +90,33 @@ class ShippingSettingsTest extends TestCase
             'amount' => 225,
             'is_active' => true,
         ]);
+    }
+
+    public function test_saving_product_default_activates_only_product_method(): void
+    {
+        $this->actingAs($this->admin)
+            ->patch(route('admin.shipping.settings.update'), [
+                'flat_rate_enabled' => '1',
+                'flat_rate_amount' => 150,
+                'product_rate_enabled' => '0',
+                'category_rate_enabled' => '1',
+                'free_shipping_enabled' => '0',
+                'free_shipping_threshold' => 0,
+                'default_method' => ShippingMethod::Product->value,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        app(ShippingSettingsService::class)->clearCache();
+
+        $settings = ShippingSetting::current()->fresh();
+        $service = app(ShippingSettingsService::class);
+
+        $this->assertFalse($settings->flat_rate_enabled);
+        $this->assertTrue($settings->product_rate_enabled);
+        $this->assertFalse($settings->category_rate_enabled);
+        $this->assertEquals(ShippingMethod::Product, $settings->default_method);
+        $this->assertEquals(ShippingMethod::Product, $service->defaultMethod());
     }
 
     public function test_admin_can_search_products_for_shipping_rates(): void

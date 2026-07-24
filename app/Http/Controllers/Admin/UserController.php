@@ -7,7 +7,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\AssignUserRoleRequest;
 use App\Http\Requests\Admin\BulkUserActionRequest;
 use App\Http\Requests\Admin\RemoveUserRoleRequest;
+use App\Http\Requests\Admin\StoreInfluencerRequest;
 use App\Http\Requests\Admin\StoreUserRequest;
+use App\Http\Requests\Admin\UpdateInfluencerRequest;
 use App\Http\Requests\Admin\UpdateUserRequest;
 use App\Models\ActivityLog;
 use App\Models\User;
@@ -45,6 +47,126 @@ class UserController extends Controller
             ),
             'roles' => $this->roleAssignment->assignableRoleNames($request->user()),
         ]);
+    }
+
+    public function influencers(): View
+    {
+        $this->authorize('viewAny', User::class);
+
+        return view('admin.influencers.index', [
+            'users' => $this->users->search([
+                'role' => 'influencer',
+                'sort' => 'created_at',
+                'direction' => 'desc',
+            ]),
+        ]);
+    }
+
+    public function createInfluencer(): View
+    {
+        $this->authorize('create', User::class);
+
+        return view('admin.influencers.form', [
+            'influencer' => new User(['status' => UserStatus::Active]),
+        ]);
+    }
+
+    public function storeInfluencer(StoreInfluencerRequest $request): RedirectResponse
+    {
+        $this->userService->createInfluencer(
+            $request->validated(),
+            $request->file('profile_photo'),
+        );
+
+        return redirect()
+            ->route('admin.influencers.index')
+            ->with('success', 'Influencer created successfully.');
+    }
+
+    public function editInfluencer(User $influencer): View
+    {
+        $this->assertInfluencer($influencer);
+
+        $actor = request()->user();
+
+        if ($actor === null || ! app(UserPolicy::class)->update($actor, $influencer)) {
+            abort(403);
+        }
+
+        return view('admin.influencers.form', [
+            'influencer' => $influencer,
+        ]);
+    }
+
+    public function updateInfluencer(UpdateInfluencerRequest $request, User $influencer): RedirectResponse
+    {
+        $this->assertInfluencer($influencer);
+
+        $this->userService->updateInfluencer(
+            $influencer,
+            $request->validated(),
+            $request->file('profile_photo'),
+        );
+
+        return redirect()
+            ->route('admin.influencers.index')
+            ->with('success', 'Influencer updated successfully.');
+    }
+
+    public function activateInfluencer(User $influencer): RedirectResponse
+    {
+        $this->assertInfluencer($influencer);
+
+        $actor = request()->user();
+
+        if ($actor === null || ! app(UserPolicy::class)->update($actor, $influencer)) {
+            abort(403);
+        }
+
+        $this->userService->setStatus($influencer, UserStatus::Active, $actor);
+
+        return redirect()
+            ->route('admin.influencers.index')
+            ->with('success', 'Influencer activated.');
+    }
+
+    public function deactivateInfluencer(User $influencer): RedirectResponse
+    {
+        $this->assertInfluencer($influencer);
+
+        $actor = request()->user();
+
+        if ($actor === null || ! app(UserPolicy::class)->update($actor, $influencer)) {
+            abort(403);
+        }
+
+        $this->userService->setStatus($influencer, UserStatus::Inactive, $actor);
+
+        return redirect()
+            ->route('admin.influencers.index')
+            ->with('success', 'Influencer deactivated.');
+    }
+
+    public function destroyInfluencer(User $influencer): RedirectResponse
+    {
+        $this->assertInfluencer($influencer);
+
+        $actor = request()->user();
+
+        if ($actor === null || ! app(UserPolicy::class)->delete($actor, $influencer)) {
+            abort(403);
+        }
+
+        $this->userService->delete($influencer, $actor);
+
+        return redirect()
+            ->route('admin.influencers.index')
+            ->with('success', 'Influencer deleted successfully.');
+    }
+
+    private function assertInfluencer(User $user): void
+    {
+        abort_unless($user->hasRole('influencer'), 404);
     }
 
     public function show(User $user): View

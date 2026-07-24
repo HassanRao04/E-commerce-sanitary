@@ -135,6 +135,14 @@ export function productPurchase(config) {
         isUpdatingVariant: false,
         updateTimer: null,
         routes: config.routes ?? {},
+        currencySymbol: config.currencySymbol ?? 'Rs.',
+        offersEnabled: config.offersEnabled ?? false,
+        offers: config.offers ?? [],
+        selectedOfferId: null,
+        pipeLengthEnabled: config.pipeLengthEnabled ?? false,
+        optionTitle: config.optionTitle || 'Options',
+        pipeLengths: config.pipeLengths ?? [],
+        selectedPipeLengthId: null,
 
         init() {
             const defaultVariant = this.variants.find(
@@ -155,8 +163,93 @@ export function productPurchase(config) {
                 ?? null;
         },
 
+        get selectedOffer() {
+            if (! this.selectedOfferId) {
+                return null;
+            }
+
+            return this.offers.find((offer) => offer.id === this.selectedOfferId) ?? null;
+        },
+
+        get selectedPipe() {
+            if (! this.selectedPipeLengthId) {
+                return null;
+            }
+
+            return this.pipeLengths.find((option) => option.id === this.selectedPipeLengthId) ?? null;
+        },
+
+        get unitPrice() {
+            const base = Number(this.selectedVariant?.effectivePrice ?? 0);
+            const addon = Number(this.selectedPipe?.additional_price ?? 0);
+
+            return Math.round((base + addon) * 100) / 100;
+        },
+
+        get discountedUnitPrice() {
+            const offer = this.selectedOffer;
+            const percent = Number(offer?.discount_percent ?? 0);
+
+            if (! offer || percent <= 0) {
+                return this.unitPrice;
+            }
+
+            return Math.round(this.unitPrice * (1 - (percent / 100)) * 100) / 100;
+        },
+
+        get displayPriceFormatted() {
+            return this.formatMoney(this.discountedUnitPrice);
+        },
+
+        get comparePriceFormatted() {
+            if (! this.selectedOffer || this.discountedUnitPrice >= this.unitPrice) {
+                return this.selectedVariant?.comparePriceFormatted ?? null;
+            }
+
+            return this.formatMoney(this.unitPrice);
+        },
+
         get canPurchase() {
             return Boolean(this.selectedVariant?.purchasable);
+        },
+
+        formatMoney(amount) {
+            const value = Number(amount || 0).toFixed(2);
+
+            return `${this.currencySymbol} ${value}`;
+        },
+
+        formatPercent(value) {
+            const normalized = Number(value || 0);
+
+            return `${Number.isInteger(normalized) ? normalized : normalized.toFixed(2)}%`;
+        },
+
+        selectOffer(offerId) {
+            this.selectedOfferId = offerId;
+
+            if (! offerId) {
+                this.quantity = 1;
+                this.clampQuantityToStock();
+                this.flashVariantUpdate();
+
+                return;
+            }
+
+            const offer = this.offers.find((item) => item.id === offerId);
+
+            if (offer) {
+                this.quantity = Math.max(1, Number(offer.buy_quantity) || 1);
+                this.clampQuantityToStock();
+            }
+
+            this.flashVariantUpdate();
+        },
+
+        selectPipeLength(optionId) {
+            // Toggle off to return to the product's base/default price.
+            this.selectedPipeLengthId = this.selectedPipeLengthId === optionId ? null : optionId;
+            this.flashVariantUpdate();
         },
 
         findMatchingVariant(options = this.selectedOptions) {
@@ -359,7 +452,9 @@ export function productPurchase(config) {
         },
 
         decrementQty() {
-            if (this.quantity > 1) {
+            const minQty = this.selectedOffer?.buy_quantity ?? 1;
+
+            if (this.quantity > minQty) {
                 this.quantity -= 1;
             }
         },

@@ -1,0 +1,8 @@
+@import './design-system/tokens.css';
+@import './design-system/components.css';
+@import './admin-shell.css';
+@import './admin/product-variation-builder.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

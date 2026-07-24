@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\LoginRequest;
 use App\Http\Requests\Api\V1\RegisterRequest;
 use App\Http\Resources\Api\V1\UserResource;
-use App\Models\Customer;
 use App\Models\User;
 use App\Services\Auth\UserAuthenticationService;
+use App\Services\CustomerProfileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,7 +17,10 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function __construct(private readonly UserAuthenticationService $authService) {}
+    public function __construct(
+        private readonly UserAuthenticationService $authService,
+        private readonly CustomerProfileService $customerProfiles,
+    ) {}
 
     public function login(LoginRequest $request): JsonResponse
     {
@@ -63,10 +66,7 @@ class AuthController extends Controller
         ]);
 
         $user->assignRole('customer');
-
-        Customer::create([
-            'user_id' => $user->id,
-        ]);
+        $this->customerProfiles->ensureForUser($user);
 
         $token = $user->createToken($request->input('device_name', 'api-token'));
 

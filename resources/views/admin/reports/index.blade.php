@@ -71,6 +71,9 @@
                             @case('customer')
                                 Customer purchase activity and lifetime value.
                                 @break
+                            @case('influencer')
+                                Influencer coupon sales, commission, usage, and repeat buyers.
+                                @break
                         @endswitch
                     </p>
                 </div>
@@ -84,6 +87,8 @@
                     <p class="text-xs text-gray-400">{{ number_format($kpis['pending'] ?? 0) }} pending · {{ number_format($kpis['in_transit'] ?? 0) }} in transit</p>
                 @elseif ($groupKey === 'customer')
                     <p class="text-xs text-gray-400">{{ number_format($kpis['active_month'] ?? 0) }} active · {{ number_format($kpis['total_customers'] ?? 0) }} total customers</p>
+                @elseif ($groupKey === 'influencer')
+                    <p class="text-xs text-gray-400">{{ number_format($kpis['month_orders'] ?? 0) }} attributed orders · {{ $currency }} {{ number_format($kpis['month_commission'] ?? 0, 2) }} commission this month</p>
                 @endif
             </div>
 

@@ -26,7 +26,7 @@ class InvoiceController extends Controller
     {
         $this->authorize('view', $invoice);
 
-        $invoice->load(['order', 'items']);
+        $invoice->loadMissing(['order', 'items']);
 
         return view('admin.invoices.show', compact('invoice'));
     }

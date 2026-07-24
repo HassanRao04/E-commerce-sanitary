@@ -40,6 +40,41 @@ class CommerceManagementTest extends TestCase
             ->assertSee($order->order_number);
     }
 
+    public function test_order_detail_shows_coupon_and_influencer_when_applied(): void
+    {
+        $influencer = User::factory()->create([
+            'first_name' => 'Order',
+            'last_name' => 'Influencer',
+            'name' => 'Order Influencer',
+            'email' => 'order.influencer@example.com',
+        ]);
+        $influencer->assignRole('influencer');
+
+        $coupon = \App\Models\Coupon::factory()->create([
+            'code' => 'ORDERSHOW10',
+            'influencer_id' => $influencer->id,
+        ]);
+
+        $order = Order::factory()->create([
+            'coupon_code' => $coupon->code,
+            'coupon_id' => $coupon->id,
+            'influencer_id' => $influencer->id,
+            'discount_total' => 250,
+            'offer_discount_total' => 0,
+            'influencer_commission_amount' => 50,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.orders.show', $order))
+            ->assertOk()
+            ->assertSee('Coupon Code')
+            ->assertSee('ORDERSHOW10')
+            ->assertSee('Influencer Name')
+            ->assertSee('Order Influencer')
+            ->assertSee('Discount')
+            ->assertSee('Commission Generated');
+    }
+
     public function test_admin_can_update_order_status(): void
     {
         $order = Order::first();

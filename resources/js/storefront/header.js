@@ -21,6 +21,7 @@ const jsonFetch = async (url, options = {}) => {
 export default (config = {}) => ({
     cart: config.cart ?? { count: 0, items: [], totals: {} },
     routes: config.routes ?? {},
+    overlay: Boolean(config.overlay),
 
     mobileOpen: false,
     searchOpen: false,
@@ -28,19 +29,51 @@ export default (config = {}) => ({
     accountOpen: false,
     megaOpen: false,
     mobileMegaOpen: false,
-    scrolled: false,
+    scrolled: !Boolean(config.overlay),
     cartLoading: false,
 
     init() {
         this.handleScroll = () => {
-            this.scrolled = window.scrollY > 4;
+            if (!this.overlay) {
+                this.scrolled = true;
+                return;
+            }
+
+            // Force solid chrome while overlays/drawers are open for readability.
+            if (this.mobileOpen || this.searchOpen || this.cartOpen || this.megaOpen) {
+                this.scrolled = true;
+                return;
+            }
+
+            this.scrolled = window.scrollY > 12;
+        };
+
+        this.syncHeaderOffset = () => {
+            if (!this.overlay) {
+                return;
+            }
+
+            const height = Math.ceil(this.$el.getBoundingClientRect().height);
+            if (height > 0) {
+                document.documentElement.style.setProperty('--storefront-header-offset', `${height}px`);
+            }
         };
 
         window.addEventListener('scroll', this.handleScroll, { passive: true });
+        window.addEventListener('resize', this.syncHeaderOffset, { passive: true });
         this.handleScroll();
+        this.syncHeaderOffset();
 
-        ['mobileOpen', 'searchOpen', 'cartOpen'].forEach((key) => {
-            this.$watch(key, () => this.syncBodyScroll());
+        if (typeof ResizeObserver !== 'undefined') {
+            this._headerResizeObserver = new ResizeObserver(() => this.syncHeaderOffset());
+            this._headerResizeObserver.observe(this.$el);
+        }
+
+        ['mobileOpen', 'searchOpen', 'cartOpen', 'megaOpen'].forEach((key) => {
+            this.$watch(key, () => {
+                this.syncBodyScroll();
+                this.handleScroll();
+            });
         });
 
         document.addEventListener('storefront:cart-added', (event) => {
@@ -64,6 +97,8 @@ export default (config = {}) => ({
 
     destroy() {
         window.removeEventListener('scroll', this.handleScroll);
+        window.removeEventListener('resize', this.syncHeaderOffset);
+        this._headerResizeObserver?.disconnect();
         document.body.classList.remove('overflow-hidden');
     },
 

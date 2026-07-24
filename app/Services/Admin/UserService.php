@@ -22,6 +22,25 @@ class UserService
         return $this->roles->assignableRoles($actor);
     }
 
+    /**
+     * Users with the influencer role (for Influencer admin list / coupon assignment).
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, User>
+     */
+    public function listInfluencers(?int $includeId = null)
+    {
+        return User::query()
+            ->where(function ($query) use ($includeId): void {
+                $query->whereHas('roles', fn ($roles) => $roles->where('name', 'influencer'));
+
+                if ($includeId) {
+                    $query->orWhere('id', $includeId);
+                }
+            })
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'phone', 'status', 'created_at']);
+    }
+
     public function create(array $data, ?UploadedFile $profilePhoto = null): User
     {
         return DB::transaction(function () use ($data, $profilePhoto) {
@@ -62,6 +81,148 @@ class UserService
 
             return $user->fresh(['roles']);
         });
+    }
+
+    /**
+     * Create a normal user and assign the influencer role automatically.
+     *
+     * @param  array{name: string, email: string, phone: string, password: string, status: string|UserStatus, notes?: string|null}  $data
+     */
+    public function createInfluencer(array $data, ?UploadedFile $profilePhoto = null): User
+    {
+        return DB::transaction(function () use ($data, $profilePhoto) {
+            [$firstName, $lastName] = $this->splitName($data['name']);
+
+            $status = $data['status'] instanceof UserStatus
+                ? $data['status']
+                : UserStatus::from($data['status']);
+
+            $user = User::query()->create([
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'email' => $data['email'],
+                'phone' => $data['phone'],
+                'notes' => filled($data['notes'] ?? null) ? $data['notes'] : null,
+                'status' => $status,
+                'password' => $data['password'],
+                'email_verified_at' => now(),
+            ]);
+
+            if ($profilePhoto !== null) {
+                $user->update([
+                    'profile_photo' => $this->storeProfilePhoto($user, $profilePhoto),
+                ]);
+            }
+
+            $user->syncRoles(['influencer']);
+
+            $this->activityLog->logCreated(
+                $user->fresh(['roles']),
+                auth()->user(),
+                [
+                    'email' => $user->email,
+                    'role' => 'influencer',
+                    'status' => $status->value,
+                ],
+            );
+
+            return $user->fresh(['roles']);
+        });
+    }
+
+    /**
+     * Update an influencer user without changing their role.
+     *
+     * @param  array{name: string, email: string, phone: string, password?: string|null, status: string|UserStatus, notes?: string|null}  $data
+     */
+    public function updateInfluencer(User $user, array $data, ?UploadedFile $profilePhoto = null): User
+    {
+        return DB::transaction(function () use ($user, $data, $profilePhoto) {
+            $user->load('roles');
+            $actor = auth()->user();
+            $oldSnapshot = $this->snapshot($user);
+
+            [$firstName, $lastName] = $this->splitName($data['name']);
+
+            $status = $data['status'] instanceof UserStatus
+                ? $data['status']
+                : UserStatus::from($data['status']);
+
+            $attributes = [
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'email' => $data['email'],
+                'phone' => $data['phone'],
+                'notes' => filled($data['notes'] ?? null) ? $data['notes'] : null,
+                'status' => $status,
+            ];
+
+            if (filled($data['password'] ?? null)) {
+                $attributes['password'] = $data['password'];
+            }
+
+            $user->update($attributes);
+
+            if ($profilePhoto !== null) {
+                $user->update([
+                    'profile_photo' => $this->storeProfilePhoto($user, $profilePhoto),
+                ]);
+            }
+
+            $user->syncRoles(['influencer']);
+
+            $user = $user->fresh(['roles']);
+            $newSnapshot = $this->snapshot($user);
+
+            if (array_key_exists('password', $attributes)) {
+                $this->activityLog->logPasswordReset($user, $actor, 'admin');
+            }
+
+            $profileChanges = $this->diffSnapshot($oldSnapshot, $newSnapshot, ['role']);
+
+            if ($profileChanges !== []) {
+                $this->activityLog->logUpdated(
+                    $user,
+                    $actor,
+                    $profileChanges['old'],
+                    $profileChanges['new'],
+                );
+            }
+
+            return $user;
+        });
+    }
+
+    public function setStatus(User $user, UserStatus $status, User $actor): User
+    {
+        if ($user->status === $status) {
+            return $user;
+        }
+
+        $oldStatus = $user->status?->value;
+        $user->update(['status' => $status]);
+
+        $this->activityLog->logUpdated(
+            $user->fresh(['roles']),
+            $actor,
+            ['status' => $oldStatus],
+            ['status' => $status->value],
+        );
+
+        return $user->fresh(['roles']);
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function splitName(string $name): array
+    {
+        $parts = preg_split('/\s+/', trim($name), 2) ?: [];
+
+        return [
+            $parts[0] ?? trim($name),
+            $parts[1] ?? '',
+        ];
     }
 
     public function update(User $user, array $data, ?UploadedFile $profilePhoto = null): User

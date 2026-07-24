@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Services\OrderWorkflowService;
+use App\Services\CustomerProfileService;
 use Database\Factories\OrderFactory;
 use App\Models\Concerns\FormatsMoney;
 use App\Enums\PaymentMethod;
@@ -40,13 +41,19 @@ class Order extends Model
         'payment_method',
         'subtotal',
         'discount_total',
+        'offer_discount_total',
         'shipping_total',
+        'shipping_discount_total',
         'service_charge_total',
         'handling_charge_total',
         'tax_total',
         'tax_type',
         'grand_total',
         'coupon_code',
+        'coupon_id',
+        'influencer_id',
+        'influencer_commission_amount',
+        'influencer_commission_paid_at',
         'notes',
     ];
 
@@ -57,12 +64,31 @@ class Order extends Model
             'payment_method' => PaymentMethod::class,
             'subtotal' => 'decimal:2',
             'discount_total' => 'decimal:2',
+            'offer_discount_total' => 'decimal:2',
             'shipping_total' => 'decimal:2',
+            'shipping_discount_total' => 'decimal:2',
             'service_charge_total' => 'decimal:2',
             'handling_charge_total' => 'decimal:2',
             'tax_total' => 'decimal:2',
             'grand_total' => 'decimal:2',
+            'influencer_commission_amount' => 'decimal:2',
+            'influencer_commission_paid_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (Order $order): void {
+            if (! $order->user_id) {
+                return;
+            }
+
+            $user = $order->user()->first();
+
+            if ($user) {
+                app(CustomerProfileService::class)->ensureForUser($user);
+            }
+        });
     }
 
     protected function formattedGrandTotal(): Attribute
@@ -265,6 +291,21 @@ class Order extends Model
     public function coupon(): BelongsTo
     {
         return $this->belongsTo(Coupon::class, 'coupon_code', 'code');
+    }
+
+    public function trackedCoupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class, 'coupon_id');
+    }
+
+    public function influencer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'influencer_id');
+    }
+
+    public function commissionTransaction(): HasOne
+    {
+        return $this->hasOne(InfluencerCommissionTransaction::class);
     }
 
     public function reviews(): HasMany

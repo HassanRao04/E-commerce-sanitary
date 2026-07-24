@@ -10,6 +10,7 @@ class ProductShippingRate extends Model
     protected $fillable = [
         'product_id',
         'amount',
+        'free_shipping',
         'is_active',
     ];
 
@@ -17,6 +18,7 @@ class ProductShippingRate extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'free_shipping' => 'boolean',
             'is_active' => 'boolean',
         ];
     }

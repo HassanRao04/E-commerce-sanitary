@@ -17,7 +17,7 @@ class AttributeSeeder extends Seeder
                 'slug' => 'finish',
                 'is_filterable' => true,
                 'is_variant_attribute' => true,
-                'values' => ['Chrome', 'Matte Black', 'Brushed Nickel', 'Gold', 'White'],
+                'values' => ['Chrome', 'Matte Black', 'Brushed Nickel', 'Gold', 'White', 'Gun Grey'],
             ],
             [
                 'name' => 'Material',
@@ -45,7 +45,7 @@ class AttributeSeeder extends Seeder
                 'slug' => 'color',
                 'is_filterable' => true,
                 'is_variant_attribute' => true,
-                'values' => ['White', 'Black', 'Grey', 'Beige'],
+                'values' => ['Chrome', 'Matte Black', 'White', 'Gold', 'Gun Grey'],
             ],
         ];
 
@@ -62,11 +62,14 @@ class AttributeSeeder extends Seeder
             );
 
             $colorHexMap = [
+                'chrome' => '#C0C0C0',
+                'matte-black' => '#1A1A1A',
                 'white' => '#FFFFFF',
+                'gold' => '#D4AF37',
+                'gun-grey' => '#4A4E53',
                 'black' => '#000000',
                 'grey' => '#808080',
                 'beige' => '#F5F5DC',
-                'gold' => '#D4AF37',
             ];
 
             foreach ($definition['values'] as $valueIndex => $value) {
@@ -79,7 +82,9 @@ class AttributeSeeder extends Seeder
                     ],
                     [
                         'value' => $value,
-                        'color_hex' => $definition['slug'] === 'color' ? ($colorHexMap[$valueSlug] ?? null) : null,
+                        'color_hex' => in_array($definition['slug'], ['color', 'finish'], true)
+                            ? ($colorHexMap[$valueSlug] ?? null)
+                            : null,
                         'sort_order' => $valueIndex,
                     ]
                 );

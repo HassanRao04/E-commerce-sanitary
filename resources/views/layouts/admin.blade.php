@@ -19,7 +19,7 @@
             }
         })();
     </script>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/admin.css', 'resources/js/admin.js'])
     <style>
         :root {
             --admin-sidebar-width: {{ config('admin.sidebar.width') }};

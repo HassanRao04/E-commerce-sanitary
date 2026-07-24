@@ -22,12 +22,14 @@ class CheckoutService
     public function __construct(
         private readonly CartService $cartService,
         private readonly CheckoutRulesEngine $rulesEngine,
+        private readonly ProductOfferCalculatorService $productOffers,
         private readonly PaymentService $paymentService,
         private readonly ActivityLogService $activityLog,
         private readonly OrderNumberService $orderNumberService,
         private readonly InventoryStockService $inventoryStock,
         private readonly StockAvailabilityService $stockAvailability,
         private readonly OrderWorkflowService $workflow,
+        private readonly CouponService $couponService,
     ) {}
 
     public function placeOrder(Cart $cart, array $data): Order
@@ -39,7 +41,13 @@ class CheckoutService
         }
 
         return DB::transaction(function () use ($cart, $data) {
-            $cart = $cart->load(['items.product', 'items.productVariant', 'coupon']);
+            $cart = $cart->load([
+                'items.product',
+                'items.productVariant',
+                'items.productOffer',
+                'items.pipeLengthOption',
+                'coupon',
+            ]);
 
             $this->assertCartIsValid($cart);
             $this->rulesEngine->validateForCheckout($cart);
@@ -63,19 +71,22 @@ class CheckoutService
                 'payment_method' => $paymentMethod,
                 'subtotal' => $totals['subtotal'],
                 'discount_total' => $totals['discount'],
-            'shipping_total' => $totals['shipping'],
-            'service_charge_total' => $totals['service_charge'],
-            'handling_charge_total' => $totals['handling_charge'],
-            'tax_total' => $totals['tax'],
-            'tax_type' => $totals['tax_type'],
-            'grand_total' => $totals['grand_total'],
+                'offer_discount_total' => $totals['offer_discount'],
+                'shipping_total' => $totals['shipping'],
+                'shipping_discount_total' => $totals['shipping_discount'],
+                'service_charge_total' => $totals['service_charge'],
+                'handling_charge_total' => $totals['handling_charge'],
+                'tax_total' => $totals['tax'],
+                'tax_type' => $totals['tax_type'],
+                'grand_total' => $totals['grand_total'],
                 'coupon_code' => $totals['coupon_code'],
                 'notes' => $this->buildOrderNotes($data, $shippingAddress, $billingAddress),
             ]);
 
             $this->createOrderItems($cart, $order);
             $this->recordStatusHistory($order);
-            $this->incrementCouponUsage($cart);
+            $this->incrementCouponUsage($cart, $totals);
+            $this->couponService->trackInfluencerOrder($order, $cart->coupon);
             $paymentResult = $this->paymentService->initiate($order, $paymentMethod);
 
             $this->activityLog->log('order.placed', $order, [], [
@@ -131,6 +142,7 @@ class CheckoutService
         foreach ($cart->items as $item) {
             $variantOptions = $item->variant_options
                 ?? VariantOptionFormatter::forVariant($item->productVariant);
+            $snapshot = $this->productOffers->snapshotLine($item);
 
             OrderItem::create([
                 'order_id' => $order->id,
@@ -144,8 +156,15 @@ class CheckoutService
                 'variant_options' => $variantOptions,
                 'sku' => $item->productVariant->sku,
                 'quantity' => $item->quantity,
-                'unit_price' => $item->unit_price,
-                'total' => round((float) $item->unit_price * $item->quantity, 2),
+                'unit_price' => $snapshot['unit_price'],
+                'original_unit_price' => $snapshot['original_unit_price'],
+                'selected_offer' => $snapshot['selected_offer'],
+                'option_title' => $snapshot['option_title'],
+                'discount_percent' => $snapshot['discount_percent'],
+                'discount_amount' => $snapshot['discount_amount'],
+                'pipe_length' => $snapshot['pipe_length'],
+                'pipe_extra_cost' => $snapshot['pipe_extra_cost'],
+                'total' => $snapshot['total'],
             ]);
 
             $this->inventoryStock->decrementForSale(
@@ -167,9 +186,10 @@ class CheckoutService
         ]);
     }
 
-    private function incrementCouponUsage(Cart $cart): void
+    private function incrementCouponUsage(Cart $cart, array $totals): void
     {
-        if ($cart->coupon) {
+        // Only count usage when the coupon actually reduced the total (same gate as coupon_code persistence).
+        if ($cart->coupon && ! empty($totals['coupon_code'])) {
             $cart->coupon->increment('used_count');
         }
     }

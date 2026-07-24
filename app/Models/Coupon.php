@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
@@ -31,6 +32,10 @@ class Coupon extends Model
         'starts_at',
         'expires_at',
         'is_active',
+        'influencer_id',
+        'commission_enabled',
+        'commission_type',
+        'commission_value',
     ];
 
     protected function casts(): array
@@ -44,6 +49,9 @@ class Coupon extends Model
             'starts_at' => 'datetime',
             'expires_at' => 'datetime',
             'is_active' => 'boolean',
+            'commission_enabled' => 'boolean',
+            'commission_type' => CouponType::class,
+            'commission_value' => 'decimal:2',
         ];
     }
 
@@ -129,6 +137,16 @@ class Coupon extends Model
         return $this->hasMany(Cart::class);
     }
 
+    public function influencer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'influencer_id');
+    }
+
+    public function trackedOrders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'coupon_id');
+    }
+
     public function calculateDiscount(float $subtotal): float
     {
         if ($this->min_order_amount && $subtotal < (float) $this->min_order_amount) {
@@ -138,6 +156,23 @@ class Coupon extends Model
         return match ($this->type) {
             CouponType::Fixed => min((float) $this->value, $subtotal),
             CouponType::Percent => round($subtotal * ((float) $this->value / 100), 2),
+        };
+    }
+
+    public function calculateCommission(float $baseAmount): float
+    {
+        if (
+            ! $this->commission_enabled
+            || ! $this->influencer_id
+            || ! $this->commission_type
+            || $this->commission_value === null
+        ) {
+            return 0.0;
+        }
+
+        return match ($this->commission_type) {
+            CouponType::Fixed => min((float) $this->commission_value, $baseAmount),
+            CouponType::Percent => round($baseAmount * ((float) $this->commission_value / 100), 2),
         };
     }
 }

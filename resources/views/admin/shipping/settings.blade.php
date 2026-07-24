@@ -16,6 +16,7 @@
                 'product_id' => $rate->product_id,
                 'product_label' => $rate->product?->name.' ('.$rate->product?->base_sku.')',
                 'amount' => (float) $rate->amount,
+                'free_shipping' => (bool) $rate->free_shipping,
                 'is_active' => $rate->is_active,
             ])->values()->all()),
             'categoryRates' => old('category_rates', $categoryRates->map(fn ($rate) => [
@@ -31,7 +32,7 @@
 
         <div class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200/60 space-y-5">
             <h3 class="font-semibold text-gray-900">Shipping methods</h3>
-            <p class="text-sm text-gray-500">Enable the methods you want available. Checkout uses the default method below.</p>
+            <p class="text-sm text-gray-500">Checkout always uses the default method below. Saving activates that method only (Flat, Product-based, or Category-based). Free shipping remains a separate rule.</p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <label class="flex items-start gap-3 rounded-lg border border-gray-200 p-4">
@@ -85,7 +86,7 @@
             <div class="max-w-xs">
                 <label class="block text-sm font-medium text-gray-700">Delivery charge</label>
                 <input type="number" step="0.01" min="0" name="flat_rate_amount" value="{{ old('flat_rate_amount', $settings->flat_rate_amount) }}" class="mt-1 w-full rounded-md border-gray-300 shadow-sm">
-                <p class="mt-1 text-xs text-gray-500">Example: 100</p>
+                <p class="mt-1 text-xs text-gray-500">Example: 300 — one delivery charge for the entire order.</p>
                 @error('flat_rate_amount')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
             </div>
         </div>
@@ -95,7 +96,7 @@
             <div class="max-w-xs">
                 <label class="block text-sm font-medium text-gray-700">Free shipping above</label>
                 <input type="number" step="0.01" min="0" name="free_shipping_threshold" value="{{ old('free_shipping_threshold', $settings->free_shipping_threshold) }}" class="mt-1 w-full rounded-md border-gray-300 shadow-sm">
-                <p class="mt-1 text-xs text-gray-500">Example: 5000 — orders at or above this amount ship free.</p>
+            <p class="mt-1 text-xs text-gray-500">Example: 10000 — orders at or above this amount ship free. Below the threshold, checkout uses the default shipping method. When free shipping is disabled, the default method always applies.</p>
                 @error('free_shipping_threshold')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
             </div>
         </div>
@@ -104,7 +105,7 @@
             <div class="flex items-center justify-between gap-4">
                 <div>
                     <h3 class="font-semibold text-gray-900">Product shipping rates</h3>
-                    <p class="text-sm text-gray-500">Example: Black Sink 30 Inch = 350</p>
+                    <p class="text-sm text-gray-500">Example: Mirror = 200, Commode = 600. Mark Free Shipping for products that always ship free; if every cart item has Free Shipping, the order ships free.</p>
                 </div>
                 <button type="button" class="px-3 py-2 text-sm border rounded-md hover:bg-gray-50" @click="addProductRate()">Add product rate</button>
             </div>
@@ -116,7 +117,7 @@
             <div class="space-y-3">
                 <template x-for="(rate, index) in productRates" :key="index">
                     <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end border border-gray-100 rounded-lg p-4">
-                        <div class="md:col-span-6">
+                        <div class="md:col-span-5">
                             <label class="block text-sm font-medium text-gray-700">Product</label>
                             <input type="hidden" :name="`product_rates[${index}][product_id]`" x-model="rate.product_id">
                             <div class="mt-1 flex gap-2">
@@ -132,9 +133,15 @@
                                 </ul>
                             </div>
                         </div>
-                        <div class="md:col-span-3">
+                        <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700">Charge</label>
                             <input type="number" step="0.01" min="0" :name="`product_rates[${index}][amount]`" x-model="rate.amount" class="mt-1 w-full rounded-md border-gray-300 shadow-sm">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="flex items-center gap-2 text-sm mt-6">
+                                <input type="checkbox" :name="`product_rates[${index}][free_shipping]`" value="1" x-model="rate.free_shipping">
+                                Free shipping
+                            </label>
                         </div>
                         <div class="md:col-span-2">
                             <label class="flex items-center gap-2 text-sm mt-6">
@@ -154,7 +161,7 @@
             <div class="flex items-center justify-between gap-4">
                 <div>
                     <h3 class="font-semibold text-gray-900">Category shipping rates</h3>
-                    <p class="text-sm text-gray-500">Example: Kitchen Sink = 200</p>
+                    <p class="text-sm text-gray-500">Example: Bathroom Accessories, Kitchen Accessories, Sanitary Ware — each category can have its own charge.</p>
                 </div>
                 <button type="button" class="px-3 py-2 text-sm border rounded-md hover:bg-gray-50" @click="addCategoryRate()">Add category rate</button>
             </div>
@@ -208,7 +215,7 @@ function shippingSettingsForm(config) {
         searchUrl: config.searchUrl,
 
         addProductRate() {
-            this.productRates.push({ product_id: '', product_label: '', amount: '', is_active: true, results: [] });
+            this.productRates.push({ product_id: '', product_label: '', amount: '', free_shipping: false, is_active: true, results: [] });
         },
 
         removeProductRate(index) {

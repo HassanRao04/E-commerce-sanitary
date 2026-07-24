@@ -11,12 +11,15 @@
             <p><strong>Name:</strong> {{ $customer->user?->name }}</p>
             <p><strong>Email:</strong> {{ $customer->user?->email }}</p>
             <p><strong>Phone:</strong> {{ $customer->user?->phone ?? '—' }}</p>
+            <p><strong>Status:</strong> {{ $customer->user?->status?->label() ?? '—' }}</p>
+            <p><strong>Registered:</strong> {{ $customer->user?->created_at?->format('d M Y H:i') ?? '—' }}</p>
             <p><strong>Company:</strong> {{ $customer->company_name ?? '—' }}</p>
             <p><strong>Tax #:</strong> {{ $customer->tax_number ?? '—' }}</p>
             <p><strong>Type:</strong> {{ $customer->customer_type->value }}</p>
             <p><strong>Credit Limit:</strong> {{ config('shop.currency_symbol') }} {{ number_format($customer->credit_limit, 2) }}</p>
             <p><strong>Lifetime Spend:</strong> {{ $customer->formatted_lifetime_spend }}</p>
             <p><strong>Orders:</strong> {{ $customer->orders_count }}</p>
+            <p><strong>Last Order:</strong> {{ $customer->last_order_at?->format('d M Y H:i') ?? '—' }}</p>
             @if ($customer->notes)
                 <p><strong>Notes:</strong> {{ $customer->notes }}</p>
             @endif

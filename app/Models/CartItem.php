@@ -11,6 +11,8 @@ class CartItem extends Model
         'cart_id',
         'product_id',
         'product_variant_id',
+        'product_offer_id',
+        'pipe_length_option_id',
         'quantity',
         'unit_price',
         'variant_options',
@@ -38,5 +40,15 @@ class CartItem extends Model
     public function productVariant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class);
+    }
+
+    public function productOffer(): BelongsTo
+    {
+        return $this->belongsTo(ProductOffer::class);
+    }
+
+    public function pipeLengthOption(): BelongsTo
+    {
+        return $this->belongsTo(ProductPipeLengthOption::class, 'pipe_length_option_id');
     }
 }

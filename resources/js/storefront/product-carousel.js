@@ -1,8 +1,64 @@
 import Swiper from 'swiper';
-import { A11y, Navigation } from 'swiper/modules';
+import { A11y, Autoplay, Navigation } from 'swiper/modules';
 
-import 'swiper/css';
-import 'swiper/css/navigation';
+const defaultBreakpoints = {
+    480: {
+        slidesPerView: 1.45,
+        spaceBetween: 16,
+    },
+    640: {
+        slidesPerView: 2.1,
+        spaceBetween: 20,
+    },
+    768: {
+        slidesPerView: 2.4,
+        spaceBetween: 22,
+    },
+    1024: {
+        slidesPerView: 3.15,
+        spaceBetween: 24,
+    },
+    1280: {
+        slidesPerView: 4,
+        spaceBetween: 28,
+    },
+};
+
+const bestsellersBreakpoints = {
+    480: {
+        slidesPerView: 1.3,
+        spaceBetween: 18,
+    },
+    640: {
+        slidesPerView: 1.85,
+        spaceBetween: 22,
+    },
+    768: {
+        slidesPerView: 2.15,
+        spaceBetween: 24,
+    },
+    1024: {
+        slidesPerView: 2.85,
+        spaceBetween: 28,
+    },
+    1280: {
+        slidesPerView: 3.35,
+        spaceBetween: 32,
+    },
+};
+
+const updateCarouselProgress = (swiper, root) => {
+    const bar = root.querySelector('.product-carousel__progress-bar');
+
+    if (!bar || !swiper.slides.length) {
+        return;
+    }
+
+    const progress = Math.max(0, Math.min(1, swiper.progress || 0));
+    bar.style.width = `${progress * 100}%`;
+};
+
+const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /**
  * Initialise all homepage product carousels.
@@ -15,14 +71,16 @@ export default function initProductCarousels() {
             return;
         }
 
+        const isBestsellers = root.dataset.carouselVariant === 'bestsellers';
         const prevEl = root.querySelector('.product-carousel__prev');
         const nextEl = root.querySelector('.product-carousel__next');
+        const modules = isBestsellers ? [Navigation, A11y, Autoplay] : [Navigation, A11y];
 
-        new Swiper(slider, {
-            modules: [Navigation, A11y],
-            slidesPerView: 1.05,
-            spaceBetween: 12,
-            speed: 550,
+        const swiper = new Swiper(slider, {
+            modules,
+            slidesPerView: isBestsellers ? 1.15 : 1.05,
+            spaceBetween: isBestsellers ? 16 : 12,
+            speed: isBestsellers ? 650 : 550,
             grabCursor: true,
             watchOverflow: true,
             navigation: {
@@ -33,30 +91,36 @@ export default function initProductCarousels() {
                 prevSlideMessage: 'Previous products',
                 nextSlideMessage: 'Next products',
             },
-            breakpoints: {
-                480: {
-                    slidesPerView: 1.6,
-                    spaceBetween: 16,
+            ...(isBestsellers && !prefersReducedMotion()
+                ? {
+                    autoplay: {
+                        delay: 5200,
+                        disableOnInteraction: false,
+                        pauseOnMouseEnter: true,
+                    },
+                }
+                : {}),
+            breakpoints: isBestsellers ? bestsellersBreakpoints : defaultBreakpoints,
+            on: {
+                init(instance) {
+                    if (isBestsellers) {
+                        updateCarouselProgress(instance, root);
+                    }
                 },
-                640: {
-                    slidesPerView: 2.15,
-                    spaceBetween: 20,
+                progress(instance) {
+                    if (isBestsellers) {
+                        updateCarouselProgress(instance, root);
+                    }
                 },
-                768: {
-                    slidesPerView: 2.5,
-                    spaceBetween: 20,
-                },
-                1024: {
-                    slidesPerView: 3.2,
-                    spaceBetween: 24,
-                },
-                1280: {
-                    slidesPerView: 4,
-                    spaceBetween: 24,
+                resize(instance) {
+                    if (isBestsellers) {
+                        updateCarouselProgress(instance, root);
+                    }
                 },
             },
         });
 
         slider.dataset.swiperInitialized = 'true';
+        root._productCarousel = swiper;
     });
 }

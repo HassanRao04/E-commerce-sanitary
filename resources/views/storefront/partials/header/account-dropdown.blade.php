@@ -1,12 +1,13 @@
-<div class="relative hidden sm:block">
+<div class="relative hidden md:block">
     <button
         type="button"
-        class="inline-flex items-center gap-2 rounded-pill border border-ink-200 bg-surface px-3 py-2 text-sm font-medium text-ink transition-all duration-250 ease-ds-out hover:border-ink-300 hover:bg-surface-subtle"
+        class="storefront-header-account-btn storefront-header-icon inline-flex items-center justify-center rounded-full border !h-10 !w-10 text-sm font-medium transition-all duration-400 ease-ds-out"
         @click.stop="toggleAccount()"
         :aria-expanded="accountOpen.toString()"
         aria-haspopup="true"
+        aria-label="Account"
     >
-        <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-ink text-xs font-semibold text-white">
+        <span class="storefront-header-account-avatar inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold">
             @auth
                 {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
             @else
@@ -15,16 +16,6 @@
                 </svg>
             @endauth
         </span>
-        <span class="hidden md:inline max-w-[8rem] truncate">
-            @auth
-                {{ auth()->user()->name }}
-            @else
-                Account
-            @endif
-        </span>
-        <svg class="hidden md:block h-4 w-4 text-ink-400 transition-transform duration-250" :class="accountOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-        </svg>
     </button>
 
     <div
@@ -47,6 +38,12 @@
             </div>
             @if (auth()->user()->isStaff())
                 <a href="{{ route('admin.dashboard') }}" class="block px-4 py-2.5 text-sm text-ink-700 hover:bg-surface-muted" role="menuitem">Admin dashboard</a>
+            @elseif (auth()->user()->isInfluencer())
+                <a href="{{ route('influencer.dashboard') }}" class="block px-4 py-2.5 text-sm text-ink-700 hover:bg-surface-muted" role="menuitem">Influencer dashboard</a>
+                <a href="{{ route('influencer.orders.index') }}" class="block px-4 py-2.5 text-sm text-ink-700 hover:bg-surface-muted" role="menuitem">Orders</a>
+                <a href="{{ route('influencer.wallet') }}" class="block px-4 py-2.5 text-sm text-ink-700 hover:bg-surface-muted" role="menuitem">Wallet</a>
+                <a href="{{ route('influencer.commissions.index') }}" class="block px-4 py-2.5 text-sm text-ink-700 hover:bg-surface-muted" role="menuitem">Commissions</a>
+                <a href="{{ route('profile.edit') }}" class="block px-4 py-2.5 text-sm text-ink-700 hover:bg-surface-muted" role="menuitem">Profile</a>
             @else
                 <a href="{{ route('shop.account.dashboard') }}" class="block px-4 py-2.5 text-sm text-ink-700 hover:bg-surface-muted" role="menuitem">Dashboard</a>
                 <a href="{{ route('shop.account.orders.index') }}" class="block px-4 py-2.5 text-sm text-ink-700 hover:bg-surface-muted" role="menuitem">My orders</a>
@@ -68,13 +65,4 @@
     </div>
 </div>
 
-{{-- Mobile account icon --}}
-<a
-    href="{{ auth()->check() ? (auth()->user()->isStaff() ? route('admin.dashboard') : route('shop.account.dashboard')) : route('login') }}"
-    class="sm:hidden ds-btn-icon !h-10 !w-10"
-    aria-label="Account"
->
-    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-    </svg>
-</a>
+{{-- Mobile: account lives in the hamburger menu to keep the bar compact --}}

@@ -29,6 +29,13 @@ class OrderItem extends Model
         'sku',
         'quantity',
         'unit_price',
+        'original_unit_price',
+        'selected_offer',
+        'option_title',
+        'discount_percent',
+        'discount_amount',
+        'pipe_length',
+        'pipe_extra_cost',
         'total',
     ];
 
@@ -37,6 +44,10 @@ class OrderItem extends Model
         return [
             'quantity' => 'integer',
             'unit_price' => 'decimal:2',
+            'original_unit_price' => 'decimal:2',
+            'discount_percent' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
+            'pipe_extra_cost' => 'decimal:2',
             'total' => 'decimal:2',
             'variant_options' => 'array',
         ];

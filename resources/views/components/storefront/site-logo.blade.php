@@ -7,8 +7,14 @@
 @php
     $settings = \App\Models\SiteSetting::current();
     $isFooter = $variant === 'footer';
-    $linkClass = trim('storefront-site-logo '.($isFooter ? 'storefront-site-logo--footer ' : '').$class);
-    $imageClass = 'storefront-site-logo__image'.($isFooter ? ' storefront-site-logo__image--footer' : '');
+    $isHero = $variant === 'hero';
+    $linkClass = trim('storefront-site-logo '
+        .($isFooter ? 'storefront-site-logo--footer ' : '')
+        .($isHero ? 'storefront-site-logo--hero ' : '')
+        .$class);
+    $imageClass = 'storefront-site-logo__image'
+        .($isFooter ? ' storefront-site-logo__image--footer' : '')
+        .($isHero ? ' storefront-site-logo__image--hero' : '');
 @endphp
 
 <a href="{{ $href }}" class="{{ $linkClass }}">
@@ -20,6 +26,12 @@
             width="160"
             height="40"
             decoding="async"
+            @if ($isFooter)
+                loading="lazy"
+                fetchpriority="low"
+            @else
+                fetchpriority="high"
+            @endif
         >
     @else
         <span class="storefront-site-logo__text">{{ $settings->displayName() }}</span>

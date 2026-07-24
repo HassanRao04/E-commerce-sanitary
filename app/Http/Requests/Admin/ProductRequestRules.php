@@ -25,10 +25,32 @@ class ProductRequestRules
             'is_new_arrival' => ['boolean'],
             'is_best_seller' => ['boolean'],
             'is_project_suitable' => ['boolean'],
+            'offers_enabled' => ['boolean'],
             'category_ids' => ['nullable', 'array'],
             'category_ids.*' => ['integer', 'exists:categories,id'],
             'meta_title' => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string', 'max:500'],
+        ];
+    }
+
+    public static function offerTiers(): array
+    {
+        return [
+            'offer_tiers' => ['nullable', 'array'],
+            'offer_tiers.*.buy_quantity' => ['required_with:offer_tiers', 'integer', 'min:1'],
+            'offer_tiers.*.discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'offer_tiers.*.free_shipping' => ['boolean'],
+        ];
+    }
+
+    public static function pipeLengthOptions(): array
+    {
+        return [
+            'pipe_length_enabled' => ['boolean'],
+            'option_title' => ['nullable', 'required_if:pipe_length_enabled,1,true', 'string', 'max:100'],
+            'pipe_length_options' => ['nullable', 'array'],
+            'pipe_length_options.*.label' => ['required_with:pipe_length_options', 'string', 'max:100'],
+            'pipe_length_options.*.additional_price' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 

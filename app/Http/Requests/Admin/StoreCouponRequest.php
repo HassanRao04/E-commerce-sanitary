@@ -24,6 +24,10 @@ class StoreCouponRequest extends FormRequest
             'starts_at' => ['nullable', 'date'],
             'expires_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'is_active' => ['boolean'],
+            'influencer_id' => ['nullable', 'integer', 'exists:users,id'],
+            'commission_enabled' => ['boolean'],
+            'commission_type' => ['nullable', Rule::enum(CouponType::class), 'required_if:commission_enabled,1'],
+            'commission_value' => ['nullable', 'numeric', 'min:0.01', 'required_if:commission_enabled,1'],
         ];
     }
 }

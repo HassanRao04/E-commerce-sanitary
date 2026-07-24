@@ -9,7 +9,7 @@
         $rows = $report['rows'];
         $chart = $report['chart'];
         $isInventory = $meta['key'] === 'inventory';
-        $moneyFields = ['revenue', 'period_revenue', 'lifetime_spend', 'valuation', 'gross_revenue', 'subtotal', 'discounts', 'shipping', 'tax', 'total_revenue', 'average_order_value', 'total_valuation', 'shipping_revenue', 'shipping_fee'];
+        $moneyFields = ['revenue', 'period_revenue', 'lifetime_spend', 'valuation', 'gross_revenue', 'subtotal', 'discounts', 'shipping', 'tax', 'total_revenue', 'average_order_value', 'total_valuation', 'shipping_revenue', 'shipping_fee', 'total_commission', 'total_discount', 'aov', 'commission', 'pending_commission', 'pending_revenue', 'total_paid', 'amount', 'average_commission'];
     @endphp
 
     <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -97,9 +97,71 @@
                                 @case('weekly-sales')
                                 @case('monthly-sales')
                                 @case('yearly-sales')
+                                @case('influencer-monthly-sales')
+                                @case('influencer-yearly-sales')
                                     <td class="px-4 py-3">{{ $row['label'] }}</td>
                                     <td class="px-4 py-3">{{ number_format($row['orders']) }}</td>
                                     <td class="px-4 py-3">{{ $currency }} {{ number_format($row['revenue'], 2) }}</td>
+                                    @break
+                                @case('influencer-monthly-commission')
+                                @case('influencer-yearly-commission')
+                                    <td class="px-4 py-3">{{ $row['label'] }}</td>
+                                    <td class="px-4 py-3">{{ number_format($row['orders']) }}</td>
+                                    <td class="px-4 py-3">{{ $currency }} {{ number_format($row['commission'], 2) }}</td>
+                                    @break
+                                @case('influencer-top')
+                                @case('influencer-lowest')
+                                    <td class="px-4 py-3">{{ $row['label'] }}</td>
+                                    <td class="px-4 py-3">{{ number_format($row['orders']) }}</td>
+                                    <td class="px-4 py-3">{{ $currency }} {{ number_format($row['revenue'], 2) }}</td>
+                                    <td class="px-4 py-3">{{ $currency }} {{ number_format($row['commission'], 2) }}</td>
+                                    <td class="px-4 py-3">{{ $currency }} {{ number_format($row['aov'], 2) }}</td>
+                                    @break
+                                @case('influencer-commission')
+                                    <td class="px-4 py-3">{{ $row['label'] }}</td>
+                                    <td class="px-4 py-3">{{ number_format($row['orders']) }}</td>
+                                    <td class="px-4 py-3">{{ $currency }} {{ number_format($row['commission'], 2) }}</td>
+                                    <td class="px-4 py-3">{{ $currency }} {{ number_format($row['revenue'], 2) }}</td>
+                                    @break
+                                @case('influencer-pending-payout')
+                                    <td class="px-4 py-3">{{ $row['label'] }}</td>
+                                    <td class="px-4 py-3">{{ $row['influencer'] }}</td>
+                                    <td class="px-4 py-3 font-mono">{{ $row['coupon'] }}</td>
+                                    <td class="px-4 py-3">{{ $row['date'] }}</td>
+                                    <td class="px-4 py-3">{{ $currency }} {{ number_format($row['revenue'], 2) }}</td>
+                                    <td class="px-4 py-3">{{ $currency }} {{ number_format($row['commission'], 2) }}</td>
+                                    <td class="px-4 py-3">{{ $row['status'] }}</td>
+                                    @break
+                                @case('influencer-paid-payout')
+                                    <td class="px-4 py-3">{{ $row['label'] }}</td>
+                                    <td class="px-4 py-3">{{ $row['influencer'] }}</td>
+                                    <td class="px-4 py-3">{{ $row['admin'] }}</td>
+                                    <td class="px-4 py-3">{{ $row['date'] }}</td>
+                                    <td class="px-4 py-3">{{ $currency }} {{ number_format($row['amount'], 2) }}</td>
+                                    <td class="px-4 py-3">{{ $row['payment_note'] }}</td>
+                                    <td class="px-4 py-3 font-mono">{{ $row['transaction_id'] }}</td>
+                                    <td class="px-4 py-3">{{ $row['status'] }}</td>
+                                    @break
+                                @case('influencer-coupon-usage')
+                                    <td class="px-4 py-3 font-mono">{{ $row['label'] }}</td>
+                                    <td class="px-4 py-3">{{ $row['influencer'] }}</td>
+                                    <td class="px-4 py-3">{{ number_format($row['uses']) }}</td>
+                                    <td class="px-4 py-3">{{ $currency }} {{ number_format($row['revenue'], 2) }}</td>
+                                    <td class="px-4 py-3">{{ $currency }} {{ number_format($row['discount'], 2) }}</td>
+                                    <td class="px-4 py-3">{{ $currency }} {{ number_format($row['commission'], 2) }}</td>
+                                    @break
+                                @case('influencer-aov')
+                                    <td class="px-4 py-3">{{ $row['label'] }}</td>
+                                    <td class="px-4 py-3">{{ number_format($row['orders']) }}</td>
+                                    <td class="px-4 py-3">{{ $currency }} {{ number_format($row['revenue'], 2) }}</td>
+                                    <td class="px-4 py-3">{{ $currency }} {{ number_format($row['aov'], 2) }}</td>
+                                    @break
+                                @case('influencer-repeat-customers')
+                                    <td class="px-4 py-3">{{ $row['label'] }}</td>
+                                    <td class="px-4 py-3">{{ $row['email'] }}</td>
+                                    <td class="px-4 py-3">{{ number_format($row['orders']) }}</td>
+                                    <td class="px-4 py-3">{{ $currency }} {{ number_format($row['revenue'], 2) }}</td>
+                                    <td class="px-4 py-3">{{ $currency }} {{ number_format($row['commission'], 2) }}</td>
                                     @break
                                 @case('product-sales')
                                     <td class="px-4 py-3">{{ $row['label'] }}</td>

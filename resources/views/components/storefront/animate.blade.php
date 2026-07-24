@@ -23,14 +23,7 @@
 @endphp
 
 <{{ $tag }}
-    {{ $attributes->class([
-        'anim-gpu',
-        'anim-fade-up' => $effect === 'fade-up',
-        'anim-fade-in' => $effect === 'fade-in',
-        'anim-slide-left' => $effect === 'slide-left',
-        'anim-slide-right' => $effect === 'slide-right',
-        'anim-scale' => in_array($effect, ['scale', 'zoom-in'], true),
-    ]) }}
+    {{ $attributes->class(['anim-gpu']) }}
     data-aos="{{ $aosEffect }}"
     @if ($delay > 0) data-aos-delay="{{ (int) $delay }}" @endif
     @if ($duration) data-aos-duration="{{ (int) $duration }}" @endif

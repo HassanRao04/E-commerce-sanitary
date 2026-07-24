@@ -105,6 +105,7 @@ export default (config = {}) => ({
 
     openQuickView() {
         document.dispatchEvent(new CustomEvent('storefront:quick-view', {
+            bubbles: true,
             detail: {
                 productId: this.productId,
                 variantId: this.variantId,

@@ -15,7 +15,11 @@
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
         .totals { margin-top: 16px; }
         .totals div { display: flex; justify-content: space-between; padding: 4px 0; }
-        .totals .grand { font-weight: 700; font-size: 18px; border-top: 2px solid #111827; margin-top: 8px; padding-top: 8px; }
+        .totals .grand,
+        .totals .order-pricing-summary > div:last-child { font-weight: 700; font-size: 18px; border-top: 2px solid #111827; margin-top: 8px; padding-top: 8px; }
+        .order-pricing-summary { margin: 0; }
+        .order-pricing-summary > div { display: flex; justify-content: space-between; padding: 4px 0; }
+        .order-item-offer-meta { margin: 4px 0 0; padding: 0; list-style: none; font-size: 12px; }
         .label-box { border: 2px dashed #111827; padding: 24px; max-width: 420px; }
         .barcode { font-family: monospace; letter-spacing: 2px; font-size: 18px; margin: 12px 0; }
         @media print {

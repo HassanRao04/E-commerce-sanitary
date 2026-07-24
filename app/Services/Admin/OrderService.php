@@ -44,6 +44,8 @@ class OrderService
                 'billingAddress',
                 'shippingAddress',
                 'user',
+                'influencer:id,name,email',
+                'trackedCoupon:id,code',
             ])
             ->findOrFail($id);
     }

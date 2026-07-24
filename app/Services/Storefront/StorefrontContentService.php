@@ -180,6 +180,7 @@ class StorefrontContentService
             $categories = Category::query()
                 ->active()
                 ->whereIn('id', $ids)
+                ->withCount('products')
                 ->get()
                 ->keyBy('id');
 
@@ -194,6 +195,7 @@ class StorefrontContentService
             ->active()
             ->roots()
             ->ordered()
+            ->withCount('products')
             ->take($limit)
             ->get();
     }

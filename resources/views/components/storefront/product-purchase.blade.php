@@ -21,6 +21,25 @@
     'inWishlist' => $inWishlist,
     'productId' => $product->id,
     'requiresSelection' => $selector['useAxisSelector'] || $selector['hasMultipleVariants'],
+    'currencySymbol' => config('shop.currency_symbol'),
+    'offersEnabled' => (bool) $product->offers_enabled,
+    'offers' => $product->offers_enabled
+        ? $product->offers->map(fn ($offer) => [
+            'id' => $offer->id,
+            'buy_quantity' => $offer->buy_quantity,
+            'discount_percent' => (float) $offer->discount_percent,
+            'free_shipping' => (bool) $offer->free_shipping,
+        ])->values()->all()
+        : [],
+    'pipeLengthEnabled' => (bool) $product->pipe_length_enabled,
+    'optionTitle' => $product->resolvedOptionTitle(),
+    'pipeLengths' => $product->pipe_length_enabled
+        ? $product->pipeLengthOptions->map(fn ($option) => [
+            'id' => $option->id,
+            'label' => $option->label,
+            'additional_price' => (float) $option->additional_price,
+        ])->values()->all()
+        : [],
     'routes' => [
         'cartStore' => route('shop.cart.store'),
         'wishlistStore' => route('shop.wishlist.store'),
@@ -31,6 +50,8 @@
         @csrf
         <input type="hidden" name="product_id" value="{{ $product->id }}">
         <input type="hidden" name="buy_now" :value="buyNow ? 1 : 0">
+        <input type="hidden" name="product_offer_id" :value="selectedOfferId ?? ''">
+        <input type="hidden" name="pipe_length_option_id" :value="selectedPipeLengthId ?? ''">
 
         @if ($selector['useAxisSelector'] || $selector['hasMultipleVariants'])
             <input type="hidden" name="product_variant_id" :value="selectedVariantId">
@@ -136,9 +157,39 @@
             </div>
         @endif
 
+        <div class="product-purchase__section" x-show="pipeLengthEnabled && pipeLengths.length" x-cloak>
+            <div class="product-purchase__label-row">
+                <span class="product-purchase__label" x-text="optionTitle"></span>
+                <span class="product-purchase__selected" x-text="selectedPipe?.label"></span>
+            </div>
+            <div class="product-option-buttons" role="listbox" :aria-label="optionTitle + ' options'">
+                <template x-for="option in pipeLengths" :key="option.id">
+                    <button
+                        type="button"
+                        class="product-size-btn"
+                        role="option"
+                        :class="{ 'is-active': selectedPipeLengthId === option.id }"
+                        :aria-selected="selectedPipeLengthId === option.id"
+                        @click="selectPipeLength(option.id)"
+                    >
+                        <span x-text="option.label"></span>
+                        <span
+                            class="product-size-btn__addon"
+                            x-show="option.additional_price > 0"
+                            x-text="'+ ' + formatMoney(option.additional_price)"
+                        ></span>
+                    </button>
+                </template>
+            </div>
+        </div>
+
         <div class="product-purchase__price" :class="{ 'is-updating': isUpdatingVariant }">
-            <span class="product-purchase__price-current" x-text="selectedVariant?.priceFormatted"></span>
-            <span class="product-purchase__price-compare" x-show="selectedVariant?.comparePriceFormatted" x-text="selectedVariant?.comparePriceFormatted"></span>
+            <span class="product-purchase__price-current" x-text="displayPriceFormatted"></span>
+            <span
+                class="product-purchase__price-compare"
+                x-show="comparePriceFormatted"
+                x-text="comparePriceFormatted"
+            ></span>
         </div>
 
         <div class="product-purchase__meta" :class="{ 'is-updating': isUpdatingVariant }">
@@ -146,6 +197,42 @@
                 SKU: <span x-text="selectedVariant?.sku"></span>
             </span>
             <span class="product-purchase__stock" :class="stockBadgeClass()" x-text="stockLabel()"></span>
+        </div>
+
+        <div class="product-purchase__section" x-show="offersEnabled && offers.length" x-cloak>
+            <div class="product-purchase__label-row">
+                <span class="product-purchase__label">Available offers</span>
+            </div>
+            <div class="product-offers" role="listbox" aria-label="Product offers">
+                <button
+                    type="button"
+                    class="product-offer-card"
+                    role="option"
+                    :class="{ 'is-active': selectedOfferId === null }"
+                    :aria-selected="selectedOfferId === null"
+                    @click="selectOffer(null)"
+                >
+                    <span class="product-offer-card__qty">Buy 1</span>
+                </button>
+                <template x-for="offer in offers" :key="offer.id">
+                    <button
+                        type="button"
+                        class="product-offer-card"
+                        role="option"
+                        :class="{ 'is-active': selectedOfferId === offer.id }"
+                        :aria-selected="selectedOfferId === offer.id"
+                        @click="selectOffer(offer.id)"
+                    >
+                        <span class="product-offer-card__qty" x-text="'Buy ' + offer.buy_quantity"></span>
+                        <span
+                            class="product-offer-card__discount"
+                            x-show="offer.discount_percent > 0"
+                            x-text="formatPercent(offer.discount_percent) + ' OFF'"
+                        ></span>
+                        <span class="product-offer-card__perk" x-show="offer.free_shipping">Free Shipping</span>
+                    </button>
+                </template>
+            </div>
         </div>
 
         <div class="product-purchase__quantity">
@@ -160,6 +247,8 @@
         @error('quantity')<p class="ds-error-text">{{ $message }}</p>@enderror
         @error('product')<p class="ds-error-text">{{ $message }}</p>@enderror
         @error('product_variant_id')<p class="ds-error-text">{{ $message }}</p>@enderror
+        @error('product_offer_id')<p class="ds-error-text">{{ $message }}</p>@enderror
+        @error('pipe_length_option_id')<p class="ds-error-text">{{ $message }}</p>@enderror
         <p class="product-purchase__selection-error ds-error-text" x-show="selectionError" x-text="selectionError" x-cloak></p>
 
         <div class="product-purchase__actions">

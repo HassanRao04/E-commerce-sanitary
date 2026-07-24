@@ -31,6 +31,7 @@
                                 <td class="py-2">
                                     <p>{{ $item->product_name }}</p>
                                     <x-storefront.variant-options :item="$item" class="text-gray-500 text-xs mt-1" />
+                                    <x-order.item-offer-meta :item="$item" class="text-gray-500" />
                                 </td>
                                 <td>{{ $item->sku }}</td>
                                 <td>{{ $item->quantity }}</td>
@@ -39,23 +40,9 @@
                         @endforeach
                     </tbody>
                 </table>
-                <dl class="mt-4 grid grid-cols-2 gap-2 text-sm border-t pt-4">
-                    <div class="flex justify-between col-span-2"><dt>Subtotal</dt><dd>{{ config('shop.currency_symbol') }} {{ number_format($order->subtotal, 2) }}</dd></div>
-                    @if ($order->discount_total > 0)
-                        <div class="flex justify-between col-span-2 text-green-700"><dt>Discount</dt><dd>- {{ config('shop.currency_symbol') }} {{ number_format($order->discount_total, 2) }}</dd></div>
-                    @endif
-                    <div class="flex justify-between col-span-2"><dt>Shipping</dt><dd>{{ config('shop.currency_symbol') }} {{ number_format($order->shipping_total, 2) }}</dd></div>
-                    @if ($order->service_charge_total > 0)
-                        <div class="flex justify-between col-span-2"><dt>Service charge</dt><dd>{{ config('shop.currency_symbol') }} {{ number_format($order->service_charge_total, 2) }}</dd></div>
-                    @endif
-                    @if ($order->handling_charge_total > 0)
-                        <div class="flex justify-between col-span-2"><dt>Handling charge</dt><dd>{{ config('shop.currency_symbol') }} {{ number_format($order->handling_charge_total, 2) }}</dd></div>
-                    @endif
-                    @if ($order->tax_total > 0)
-                        <div class="flex justify-between col-span-2"><dt>{{ $order->tax_label }}</dt><dd>{{ config('shop.currency_symbol') }} {{ number_format($order->tax_total, 2) }}</dd></div>
-                    @endif
-                    <div class="flex justify-between col-span-2 font-semibold"><dt>Grand Total</dt><dd>{{ $order->formatted_grand_total }}</dd></div>
-                </dl>
+                <div class="mt-4 border-t pt-4 text-sm">
+                    <x-order.pricing-summary :record="$order" class="max-w-sm ml-auto [&_dt]:text-gray-600" />
+                </div>
             </div>
 
             <div class="bg-white rounded-lg shadow p-6">
@@ -112,6 +99,25 @@
                 <p>{{ $order->customer_email }}</p>
                 <p>{{ $order->customer_phone ?? '—' }}</p>
             </div>
+
+            @if (filled($order->coupon_code) || filled($order->coupon_id))
+                @php
+                    $couponDiscount = max(0, round(
+                        (float) $order->discount_total - (float) ($order->offer_discount_total ?? 0),
+                        2
+                    ));
+                    if ($couponDiscount <= 0 && (float) $order->discount_total > 0 && (float) ($order->offer_discount_total ?? 0) <= 0) {
+                        $couponDiscount = (float) $order->discount_total;
+                    }
+                @endphp
+                <div class="bg-white rounded-lg shadow p-6 text-sm space-y-2">
+                    <h2 class="text-lg font-medium mb-3">Coupon</h2>
+                    <p><strong>Coupon Code:</strong> {{ $order->trackedCoupon?->code ?? $order->coupon_code }}</p>
+                    <p><strong>Influencer Name:</strong> {{ $order->influencer?->name ?? '—' }}</p>
+                    <p><strong>Discount:</strong> <x-money :amount="$couponDiscount" /></p>
+                    <p><strong>Commission Generated:</strong> <x-money :amount="$order->influencer_commission_amount ?? 0" /></p>
+                </div>
+            @endif
 
             @can('update', $order)
                 <div class="bg-white rounded-lg shadow p-6">

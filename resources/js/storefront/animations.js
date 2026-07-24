@@ -15,15 +15,20 @@ const STAGGER_PRESETS = {
     scale: { y: 0, x: 0, opacity: 0, scale: 0.92 },
 };
 
-const HOVER_PRESETS = {
-    lift: { y: -6, scale: 1.015, boxShadow: '0 12px 32px -8px rgb(11 11 15 / 0.12)' },
-    scale: { y: 0, scale: 1.04, boxShadow: '0 8px 24px -8px rgb(11 11 15 / 0.1)' },
-    glow: { y: -2, scale: 1.01, boxShadow: '0 0 0 1px rgb(0 113 227 / 0.15), 0 8px 24px -8px rgb(0 113 227 / 0.35)' },
-    tilt: { y: -4, scale: 1.02, rotateX: 2, rotateY: -2 },
+const STAGGER_PRESETS_MOBILE = {
+    'fade-up': { y: 16, x: 0, opacity: 0, scale: 1 },
+    'fade-in': { y: 0, x: 0, opacity: 0, scale: 1 },
+    'slide-left': { y: 0, x: -16, opacity: 0, scale: 1 },
+    'slide-right': { y: 0, x: 16, opacity: 0, scale: 1 },
+    scale: { y: 0, x: 0, opacity: 0, scale: 0.96 },
 };
 
 function prefersReducedMotion() {
     return reducedMotionQuery.matches;
+}
+
+function isMobile() {
+    return mobileQuery.matches;
 }
 
 function revealStaticElements(root) {
@@ -36,31 +41,34 @@ function revealStaticElements(root) {
     root.querySelectorAll('[data-gsap-stagger-item]').forEach((el) => {
         el.style.opacity = '1';
         el.style.transform = 'none';
+        el.classList.add('gsap-revealed');
     });
 }
 
 function initAos() {
     AOS.init({
         once: true,
-        duration: mobileQuery.matches ? 450 : 650,
+        duration: isMobile() ? 380 : 550,
         easing: 'ease-out-cubic',
-        offset: mobileQuery.matches ? 24 : 40,
+        offset: isMobile() ? 16 : 36,
         delay: 0,
         anchorPlacement: 'top-bottom',
         disableMutationObserver: true,
-        throttleDelay: 99,
-        debounceDelay: 50,
-        disable: prefersReducedMotion(),
+        throttleDelay: 120,
+        debounceDelay: 80,
+        disable: prefersReducedMotion() || (isMobile() && window.matchMedia('(max-width: 480px)').matches),
     });
 }
 
 function initGsapStagger() {
     document.documentElement.classList.add('js-animations-ready');
 
+    const presets = isMobile() ? STAGGER_PRESETS_MOBILE : STAGGER_PRESETS;
+
     gsap.utils.toArray('[data-gsap-stagger]').forEach((container) => {
         const effect = container.dataset.gsapStagger || 'fade-up';
-        const preset = STAGGER_PRESETS[effect] ?? STAGGER_PRESETS['fade-up'];
-        const stagger = parseFloat(container.dataset.gsapStaggerDelay || '0.08');
+        const preset = presets[effect] ?? presets['fade-up'];
+        const stagger = parseFloat(container.dataset.gsapStaggerDelay || (isMobile() ? '0.05' : '0.08'));
         const items = container.querySelectorAll('[data-gsap-stagger-item]');
 
         if (items.length === 0) {
@@ -72,8 +80,7 @@ function initGsapStagger() {
             x: preset.x,
             y: preset.y,
             scale: preset.scale,
-            transformOrigin: 'center center',
-            willChange: 'transform, opacity',
+            force3D: true,
         });
 
         gsap.to(items, {
@@ -81,61 +88,55 @@ function initGsapStagger() {
             x: 0,
             y: 0,
             scale: 1,
-            duration: mobileQuery.matches ? 0.45 : 0.6,
+            duration: isMobile() ? 0.38 : 0.55,
             stagger,
             ease: 'power2.out',
-            clearProps: 'willChange',
+            force3D: true,
+            clearProps: 'transform,opacity',
             onComplete: () => {
                 items.forEach((item) => item.classList.add('gsap-revealed'));
             },
             scrollTrigger: {
                 trigger: container,
-                start: 'top 88%',
+                start: 'top 92%',
                 once: true,
+                fastScrollEnd: true,
+                invalidateOnRefresh: true,
             },
         });
     });
 }
 
+/**
+ * Prefer CSS :hover when possible — only wire remaining data-gsap-hover nodes.
+ */
 function initGsapHover() {
-    if (window.matchMedia('(hover: none)').matches) {
+    if (isMobile() || window.matchMedia('(hover: none)').matches) {
         return;
     }
 
-    document.querySelectorAll('[data-gsap-hover]').forEach((el) => {
+    const nodes = document.querySelectorAll('[data-gsap-hover]');
+
+    if (nodes.length === 0) {
+        return;
+    }
+
+    const HOVER_PRESETS = {
+        lift: { y: -4, scale: 1.01, boxShadow: '0 10px 28px -10px rgb(11 11 15 / 0.12)' },
+        scale: { y: 0, scale: 1.03, boxShadow: '0 8px 22px -10px rgb(11 11 15 / 0.1)' },
+        glow: { y: -2, scale: 1.01, boxShadow: '0 0 0 1px rgb(0 113 227 / 0.15), 0 8px 24px -8px rgb(0 113 227 / 0.3)' },
+        tilt: { y: -3, scale: 1.015, rotateX: 1.5, rotateY: -1.5 },
+    };
+
+    nodes.forEach((el) => {
         const presetName = el.dataset.gsapHover || 'lift';
         const preset = HOVER_PRESETS[presetName] ?? HOVER_PRESETS.lift;
-        const isTilt = presetName === 'tilt';
 
-        if (isTilt) {
-            el.style.transformPerspective = '800px';
-            el.style.transformStyle = 'preserve-3d';
-        }
+        const reset = { y: 0, scale: 1, rotateX: 0, rotateY: 0, boxShadow: 'none', duration: 0.28, ease: 'power2.out', overwrite: 'auto' };
+        const enter = { ...preset, duration: 0.22, ease: 'power2.out', overwrite: 'auto', force3D: true };
 
-        const reset = { y: 0, scale: 1, rotateX: 0, rotateY: 0, boxShadow: 'none', duration: 0.35, ease: 'power2.out' };
-        const enter = { ...preset, duration: 0.28, ease: 'power2.out', overwrite: 'auto' };
-
-        el.addEventListener('mouseenter', () => gsap.to(el, enter));
-        el.addEventListener('mouseleave', () => gsap.to(el, reset));
-        el.addEventListener('focusin', () => gsap.to(el, enter));
-        el.addEventListener('focusout', () => gsap.to(el, reset));
-    });
-}
-
-function initGsapParallax() {
-    document.querySelectorAll('[data-gsap-parallax]').forEach((el) => {
-        const amount = parseFloat(el.dataset.gsapParallax || '40');
-
-        gsap.to(el, {
-            y: amount,
-            ease: 'none',
-            scrollTrigger: {
-                trigger: el.closest('[data-gsap-parallax-root]') ?? el,
-                start: 'top bottom',
-                end: 'bottom top',
-                scrub: true,
-            },
-        });
+        el.addEventListener('mouseenter', () => gsap.to(el, enter), { passive: true });
+        el.addEventListener('mouseleave', () => gsap.to(el, reset), { passive: true });
     });
 }
 
@@ -145,9 +146,11 @@ function refreshOnResize() {
     window.addEventListener('resize', () => {
         clearTimeout(timer);
         timer = setTimeout(() => {
-            AOS.refresh();
+            if (window.AOS) {
+                AOS.refresh();
+            }
             ScrollTrigger.refresh();
-        }, 200);
+        }, 280);
     }, { passive: true });
 }
 
@@ -166,12 +169,15 @@ export function initStorefrontAnimations() {
     initAos();
     initGsapStagger();
     initGsapHover();
-    initGsapParallax();
     refreshOnResize();
 
     reducedMotionQuery.addEventListener('change', (event) => {
         if (event.matches) {
-            AOS.refreshHard();
+            try {
+                AOS.refreshHard();
+            } catch {
+                // AOS may be disabled
+            }
             ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
             revealStaticElements(root);
         }

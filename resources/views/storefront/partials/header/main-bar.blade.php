@@ -1,37 +1,34 @@
 <div class="ds-container">
-    <div class="flex items-center justify-between h-16 lg:h-[4.25rem] gap-3">
-        {{-- Mobile menu toggle --}}
-        <button
-            type="button"
-            class="lg:hidden ds-btn-icon !h-10 !w-10 shrink-0"
-            @click="toggleMobile()"
-            :aria-expanded="mobileOpen.toString()"
-            aria-controls="mobile-menu-panel"
-            aria-label="Open menu"
-        >
-            <svg x-show="!mobileOpen" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-            </svg>
-            <svg x-show="mobileOpen" x-cloak class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-        </button>
-
-        {{-- Logo --}}
-        <x-storefront.site-logo class="ds-hover-fade" />
-
-        {{-- Desktop quick links --}}
-        <div class="hidden lg:flex items-center gap-1 flex-1 justify-center">
-            <a href="{{ route('shop.products.index') }}" class="ds-btn-ghost ds-btn-sm">All products</a>
-            <a href="{{ route('shop.orders.track') }}" class="ds-btn-ghost ds-btn-sm">Track order</a>
-        </div>
-
-        {{-- Actions --}}
-        <div class="flex items-center gap-1 sm:gap-2 shrink-0">
-            {{-- Search --}}
+    <div class="storefront-header-main">
+        {{-- LEFT: mobile menu + logo --}}
+        <div class="storefront-header-main__left">
             <button
                 type="button"
-                class="ds-btn-icon !h-10 !w-10"
+                class="storefront-header-icon md:hidden ds-btn-icon !h-10 !w-10 shrink-0"
+                @click="toggleMobile()"
+                :aria-expanded="mobileOpen.toString()"
+                aria-controls="mobile-menu-panel"
+                aria-label="Open menu"
+            >
+                <svg x-show="!mobileOpen" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+                <svg x-show="mobileOpen" x-cloak class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+
+            <x-storefront.site-logo class="storefront-header-logo ds-hover-fade" />
+        </div>
+
+        {{-- CENTER: primary navigation (desktop / tablet) --}}
+        @include('storefront.partials.header.nav-desktop')
+
+        {{-- RIGHT: search · account · cart --}}
+        <div class="storefront-header-main__actions">
+            <button
+                type="button"
+                class="storefront-header-icon ds-btn-icon !h-10 !w-10"
                 @click="openSearch()"
                 aria-label="Open search"
             >
@@ -40,29 +37,11 @@
                 </svg>
             </button>
 
-            {{-- Wishlist --}}
-            <a
-                href="{{ route('shop.wishlist.index') }}"
-                class="relative ds-btn-icon !h-10 !w-10"
-                aria-label="Wishlist"
-            >
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-                </svg>
-                @if ($wishlistItemCount > 0)
-                    <span class="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center min-w-[1.125rem] h-[1.125rem] px-1 rounded-full bg-commerce-sale text-white text-2xs font-semibold">
-                        {{ $wishlistItemCount > 99 ? '99+' : $wishlistItemCount }}
-                    </span>
-                @endif
-            </a>
-
-            {{-- Account --}}
             @include('storefront.partials.header.account-dropdown')
 
-            {{-- Cart --}}
             <button
                 type="button"
-                class="relative ds-btn-icon !h-10 !w-10"
+                class="storefront-header-icon relative ds-btn-icon !h-10 !w-10"
                 @click="openCart()"
                 aria-label="Open cart"
             >
@@ -72,10 +51,10 @@
                 <span
                     x-show="cart.count > 0"
                     x-text="cart.count > 99 ? '99+' : cart.count"
-                    class="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center min-w-[1.125rem] h-[1.125rem] px-1 rounded-full bg-ink text-white text-2xs font-semibold"
+                    class="storefront-header-badge storefront-header-badge--cart"
                 ></span>
                 @if ($cartItemCount > 0)
-                    <span x-cloak x-show="cart.count === 0" class="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center min-w-[1.125rem] h-[1.125rem] px-1 rounded-full bg-ink text-white text-2xs font-semibold">
+                    <span x-cloak x-show="cart.count === 0" class="storefront-header-badge storefront-header-badge--cart">
                         {{ $cartItemCount > 99 ? '99+' : $cartItemCount }}
                     </span>
                 @endif

@@ -1,5 +1,5 @@
 /* Storefront responsive & touch UX */
-.ds-root img:not(.storefront-site-logo__image),
+.ds-root img:not(.storefront-site-logo__image):not(.category-card__image):not(.product-card__image-primary):not(.product-card__image-secondary),
 .ds-root video {
     max-width: 100%;
     height: auto;
@@ -31,6 +31,17 @@
     .ds-btn-icon {
         min-width: 2.75rem;
     }
+
+    .storefront-page--hero-overlay .ds-container .grid:not(.category-grid) {
+        gap: 0.75rem;
+    }
+}
+
+/* Tablet: keep section breathing room between mobile and desktop */
+@media (min-width: 640px) and (max-width: 1023px) {
+    .storefront-page--hero-overlay main > .ds-container.ds-section-tight {
+        --home-section-pad: clamp(2.75rem, 5vw, 4rem);
+    }
 }
 
 @media (hover: none) and (pointer: coarse) {
@@ -40,6 +51,12 @@
     }
 
     .product-card--premium:hover {
+        transform: none;
+    }
+
+    .storefront-page--hero-overlay .ds-btn-primary:hover,
+    .storefront-page--hero-overlay .ds-btn-accent:hover,
+    .storefront-page--hero-overlay .home-cta-band .ds-btn:hover {
         transform: none;
     }
 }

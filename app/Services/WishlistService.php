@@ -25,7 +25,7 @@ class WishlistService
     public function items(): Collection
     {
         return $this->resolveQuery()
-            ->with(['product.brand', 'product.defaultVariant', 'product.images', 'productVariant'])
+            ->with(['product.brand', 'product.defaultVariant', 'product.images', 'product.variants', 'productVariant'])
             ->latest('id')
             ->get();
     }

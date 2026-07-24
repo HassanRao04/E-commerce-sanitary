@@ -482,6 +482,11 @@
     padding-bottom: 0.5rem;
 }
 
+.shop-grid--list .product-card__details {
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+}
+
 .shop-grid--list .product-card__actions-bar {
     opacity: 1;
     transform: none;

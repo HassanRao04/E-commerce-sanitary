@@ -14,8 +14,13 @@ class SiteSettingsSeeder extends Seeder
             [
                 'site_name' => 'Sanitary Store ERP',
                 'email' => config('shop.admin_email'),
+                'support_email' => 'inayatsanitaryhouse@gmail.com',
                 'contact_phone' => '+92-300-0000000',
                 'whatsapp' => '+92-300-0000000',
+                'contact_form_enabled' => true,
+                'email_notifications_enabled' => true,
+                'whatsapp_notifications_enabled' => true,
+                'auto_reply_enabled' => false,
                 'address' => 'Karachi, Pakistan',
                 'default_meta_description' => 'Premium sanitary ware and bathroom fittings.',
                 'currency' => config('shop.currency'),

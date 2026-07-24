@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Product;
+use App\Models\ProductOffer;
+use App\Models\ProductPipeLengthOption;
 use App\Models\ProductVariant;
 use App\Support\VariantOptionFormatter;
 use Illuminate\Support\Facades\Auth;
@@ -81,7 +83,11 @@ class CartService
         return $this->syncCartPrices($this->resolve()->load([
             'items.product.brand',
             'items.product.images',
+            'items.product.offers',
+            'items.product.pipeLengthOptions',
             'items.productVariant',
+            'items.productOffer',
+            'items.pipeLengthOption',
             'coupon',
         ]));
     }
@@ -95,7 +101,12 @@ class CartService
                 continue;
             }
 
-            $displayPrice = $this->productPricing->displayPrice($item->productVariant, $customerType);
+            $item->loadMissing('pipeLengthOption');
+            $displayPrice = $this->resolveUnitPrice(
+                $item->productVariant,
+                $item->pipeLengthOption,
+                $customerType,
+            );
 
             if ((float) $item->unit_price !== $displayPrice) {
                 $item->update(['unit_price' => $displayPrice]);
@@ -106,8 +117,13 @@ class CartService
         return $cart;
     }
 
-    public function addItem(int $productId, ?int $variantId, int $quantity): CartItem
-    {
+    public function addItem(
+        int $productId,
+        ?int $variantId,
+        int $quantity,
+        ?int $productOfferId = null,
+        ?int $pipeLengthOptionId = null,
+    ): CartItem {
         $product = Product::query()->active()->findOrFail($productId);
 
         if ($product->product_type === 'variable' && ! $variantId) {
@@ -128,10 +144,23 @@ class CartService
             throw ValidationException::withMessages(['quantity' => 'Quantity must be at least 1.']);
         }
 
+        $offer = $this->resolveOffer($product, $productOfferId);
+        $pipe = $this->resolvePipeLength($product, $pipeLengthOptionId);
+
+        if ($offer) {
+            $quantity = max(1, (int) $offer->buy_quantity);
+        }
+
         $cart = $this->resolve();
-        $existing = $cart->items()
-            ->where('product_variant_id', $variant->id)
-            ->first();
+        $existingQuery = $cart->items()->where('product_variant_id', $variant->id);
+
+        if ($pipe) {
+            $existingQuery->where('pipe_length_option_id', $pipe->id);
+        } else {
+            $existingQuery->whereNull('pipe_length_option_id');
+        }
+
+        $existing = $existingQuery->first();
 
         $heldInCart = $existing?->quantity ?? 0;
         $newTotal = $heldInCart + $quantity;
@@ -143,6 +172,9 @@ class CartService
             ]);
         }
 
+        $unitPrice = $this->resolveUnitPrice($variant, $pipe);
+        $variantOptions = $this->buildVariantOptions($variant, $pipe, $offer, $product);
+
         if ($existing) {
             $this->inventory->reserve(
                 $variant,
@@ -152,15 +184,15 @@ class CartService
                 'Cart quantity increased',
             );
 
-            $displayPrice = $this->productPricing->displayPrice($variant);
-
             $existing->update([
                 'quantity' => $newTotal,
-                'unit_price' => $displayPrice,
-                'variant_options' => VariantOptionFormatter::forVariant($variant),
+                'unit_price' => $unitPrice,
+                'product_offer_id' => $offer?->id,
+                'pipe_length_option_id' => $pipe?->id,
+                'variant_options' => $variantOptions,
             ]);
 
-            return $existing->fresh(['product', 'productVariant']);
+            return $existing->fresh(['product', 'productVariant', 'productOffer', 'pipeLengthOption']);
         }
 
         $this->inventory->reserve(
@@ -174,13 +206,18 @@ class CartService
         return $cart->items()->create([
             'product_id' => $product->id,
             'product_variant_id' => $variant->id,
+            'product_offer_id' => $offer?->id,
+            'pipe_length_option_id' => $pipe?->id,
             'quantity' => $quantity,
-            'unit_price' => $this->productPricing->displayPrice($variant),
-            'variant_options' => VariantOptionFormatter::forVariant($variant),
-        ])->load(['product', 'productVariant']);
+            'unit_price' => $unitPrice,
+            'variant_options' => $variantOptions,
+        ])->load(['product', 'productVariant', 'productOffer', 'pipeLengthOption']);
     }
 
-    public function updateItem(CartItem $item, int $quantity): CartItem
+    /**
+     * @param  array{product_offer_id?: int|null, pipe_length_option_id?: int|null}  $options
+     */
+    public function updateItem(CartItem $item, int $quantity, array $options = []): CartItem
     {
         $this->assertCartItemOwnership($item);
 
@@ -188,7 +225,26 @@ class CartService
             throw ValidationException::withMessages(['quantity' => 'Quantity must be at least 1.']);
         }
 
+        $item->loadMissing(['product', 'productVariant', 'productOffer', 'pipeLengthOption']);
+        $product = $item->product;
         $variant = $item->productVariant;
+
+        $offerChanging = array_key_exists('product_offer_id', $options);
+        $offer = $offerChanging
+            ? $this->resolveOffer($product, $options['product_offer_id'])
+            : $item->productOffer;
+
+        $pipe = array_key_exists('pipe_length_option_id', $options)
+            ? $this->resolvePipeLength($product, $options['pipe_length_option_id'])
+            : $item->pipeLengthOption;
+
+        if ($offerChanging) {
+            // Offer is the source of truth: Buy 1 clears to qty 1; Buy N sets qty to N.
+            $quantity = $offer ? max(1, (int) $offer->buy_quantity) : 1;
+        } elseif ($offer && $quantity < $offer->buy_quantity) {
+            $quantity = $offer->buy_quantity;
+        }
+
         $previousQuantity = $item->quantity;
 
         if ($quantity > $previousQuantity) {
@@ -218,9 +274,15 @@ class CartService
             );
         }
 
-        $item->update(['quantity' => $quantity]);
+        $item->update([
+            'quantity' => $quantity,
+            'product_offer_id' => $offer?->id,
+            'pipe_length_option_id' => $pipe?->id,
+            'unit_price' => $this->resolveUnitPrice($variant, $pipe),
+            'variant_options' => $this->buildVariantOptions($variant, $pipe, $offer, $product),
+        ]);
 
-        return $item->fresh(['product', 'productVariant']);
+        return $item->fresh(['product', 'productVariant', 'productOffer', 'pipeLengthOption']);
     }
 
     public function removeItem(CartItem $item): void
@@ -337,7 +399,9 @@ class CartService
 
                 $existing->update([
                     'quantity' => $newQuantity,
-                    'unit_price' => $this->productPricing->displayPrice($variant),
+                    'unit_price' => $this->resolveUnitPrice($variant, $item->pipeLengthOption),
+                    'product_offer_id' => $item->product_offer_id ?? $existing->product_offer_id,
+                    'pipe_length_option_id' => $item->pipe_length_option_id ?? $existing->pipe_length_option_id,
                     'variant_options' => $item->variant_options
                         ?? VariantOptionFormatter::forVariant($variant),
                 ]);
@@ -365,13 +429,22 @@ class CartService
         return (int) $cart->items()->sum('quantity');
     }
 
-    /** @return array{subtotal: float, discount: float, shipping: float, service_charge: float, handling_charge: float, tax: float, grand_total: float} */
+    /** @return array{subtotal: float, discount: float, shipping: float, service_charge: float, handling_charge: float, tax: float, grand_total: float, qualifies_for_free_shipping?: bool} */
     public function totals(?Cart $cart = null): array
     {
         $cart ??= $this->getCart();
 
         return collect($this->pricing->calculate($cart))
-            ->only(['subtotal', 'discount', 'shipping', 'service_charge', 'handling_charge', 'tax', 'grand_total'])
+            ->only([
+                'subtotal',
+                'discount',
+                'shipping',
+                'service_charge',
+                'handling_charge',
+                'tax',
+                'grand_total',
+                'qualifies_for_free_shipping',
+            ])
             ->all();
     }
 
@@ -403,6 +476,8 @@ class CartService
                     'line_total' => $lineTotal,
                     'unit_price_formatted' => $symbol.' '.number_format((float) $item->unit_price, 2),
                     'line_total_formatted' => $symbol.' '.number_format($lineTotal, 2),
+                    'product_offer_id' => $item->product_offer_id,
+                    'pipe_length_option_id' => $item->pipe_length_option_id,
                     'image' => $item->product->primary_image_url,
                     'url' => route('shop.products.show', $item->product),
                 ];
@@ -412,10 +487,114 @@ class CartService
                 'subtotal_formatted' => $symbol.' '.number_format($totals['subtotal'], 2),
                 'discount_formatted' => $symbol.' '.number_format($totals['discount'], 2),
                 'shipping_formatted' => $symbol.' '.number_format($totals['shipping'], 2),
+                'service_charge_formatted' => $symbol.' '.number_format($totals['service_charge'], 2),
+                'handling_charge_formatted' => $symbol.' '.number_format($totals['handling_charge'], 2),
                 'tax_formatted' => $symbol.' '.number_format($totals['tax'], 2),
                 'grand_total_formatted' => $symbol.' '.number_format($totals['grand_total'], 2),
+                'qualifies_for_free_shipping' => (bool) ($totals['qualifies_for_free_shipping'] ?? false),
             ],
         ];
+    }
+
+    private function resolveUnitPrice(
+        ProductVariant $variant,
+        ?ProductPipeLengthOption $pipe = null,
+        $customerType = null,
+    ): float {
+        $base = $this->productPricing->displayPrice($variant, $customerType);
+        $addon = $pipe ? (float) $pipe->additional_price : 0.0;
+
+        return round($base + $addon, 2);
+    }
+
+    private function resolveOffer(Product $product, ?int $offerId): ?ProductOffer
+    {
+        if (! $offerId) {
+            return null;
+        }
+
+        if (! $product->offers_enabled) {
+            throw ValidationException::withMessages([
+                'product_offer_id' => 'Offers are not available for this product.',
+            ]);
+        }
+
+        $offer = $product->offers()->whereKey($offerId)->first();
+
+        if (! $offer) {
+            throw ValidationException::withMessages([
+                'product_offer_id' => 'The selected offer is not valid for this product.',
+            ]);
+        }
+
+        return $offer;
+    }
+
+    private function resolvePipeLength(Product $product, ?int $pipeLengthOptionId): ?ProductPipeLengthOption
+    {
+        if (! $pipeLengthOptionId) {
+            return null;
+        }
+
+        if (! $product->pipe_length_enabled) {
+            throw ValidationException::withMessages([
+                'pipe_length_option_id' => $product->resolvedOptionTitle().' options are not available for this product.',
+            ]);
+        }
+
+        $pipe = $product->pipeLengthOptions()->whereKey($pipeLengthOptionId)->first();
+
+        if (! $pipe) {
+            throw ValidationException::withMessages([
+                'pipe_length_option_id' => 'The selected '.$product->resolvedOptionTitle().' is not valid for this product.',
+            ]);
+        }
+
+        return $pipe;
+    }
+
+    /**
+     * @return list<array{name: string, slug: string, value: string}>
+     */
+    private function buildVariantOptions(
+        ProductVariant $variant,
+        ?ProductPipeLengthOption $pipe = null,
+        ?ProductOffer $offer = null,
+        ?Product $product = null,
+    ): array {
+        $options = VariantOptionFormatter::forVariant($variant);
+
+        if ($pipe) {
+            $product ??= $pipe->product ?? $variant->product;
+            $optionTitle = $product?->resolvedOptionTitle() ?? 'Options';
+
+            $options[] = [
+                'name' => $optionTitle,
+                'slug' => 'product_option',
+                'value' => $pipe->label,
+            ];
+        }
+
+        if ($offer) {
+            $parts = ['Buy '.$offer->buy_quantity];
+            $percent = (float) $offer->discount_percent;
+
+            if ($percent > 0) {
+                $parts[] = rtrim(rtrim(number_format($percent, 2), '0'), '.').'% OFF';
+            }
+
+            if ($offer->free_shipping) {
+                $parts[] = 'Free Shipping';
+            }
+
+            $options[] = [
+                'name' => 'Offer',
+                'slug' => 'product_offer',
+                'value' => implode(' · ', $parts),
+            ];
+        }
+
+        return $options;
     }
 
     private function resolveVariant(Product $product, ?int $variantId): ProductVariant
@@ -427,7 +606,9 @@ class CartService
         $variant = $product->defaultVariant ?? $product->variants()->active()->orderBy('sort_order')->first();
 
         if (! $variant) {
-            throw ValidationException::withMessages(['product' => 'This product is not available for purchase.']);
+            throw ValidationException::withMessages([
+                'product_id' => 'This product is not available for purchase.',
+            ]);
         }
 
         return $variant;

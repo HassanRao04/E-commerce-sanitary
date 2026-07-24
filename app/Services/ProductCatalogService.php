@@ -15,7 +15,12 @@ class ProductCatalogService
     {
         return Product::query()
             ->active()
-            ->with(['brand', 'defaultVariant', 'images' => fn ($q) => $q->where('is_primary', true)]);
+            ->with([
+                'brand',
+                'defaultVariant',
+                'images',
+                'variants' => fn ($q) => $q->active()->orderBy('sort_order'),
+            ]);
     }
 
     public function applyFilters(Builder $query, Request $request): Builder

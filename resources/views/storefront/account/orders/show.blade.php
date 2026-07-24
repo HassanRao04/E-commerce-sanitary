@@ -98,6 +98,7 @@
                                         <td class="px-5 py-4">
                                     <p class="font-medium">{{ $item->product_name }}</p>
                                     <x-storefront.variant-options :item="$item" class="text-ink-500 text-sm mt-1" />
+                                    <x-order.item-offer-meta :item="$item" class="text-ink-500" />
                                 </td>
                                         <td class="px-5 py-4 text-ink-600">{{ $item->sku }}</td>
                                         <td class="px-5 py-4 text-right">{{ $item->quantity }}</td>
@@ -120,23 +121,7 @@
                         </table>
                     </div>
                     <div class="px-5 py-4 border-t border-ink-100 bg-surface-muted/30">
-                        <dl class="space-y-2 ds-body-sm max-w-sm ml-auto">
-                            <div class="flex justify-between"><dt class="text-ink-500">Subtotal</dt><dd><x-money :amount="$order->subtotal" /></dd></div>
-                            @if ($order->discount_total > 0)
-                                <div class="flex justify-between text-success"><dt>Discount</dt><dd>- <x-money :amount="$order->discount_total" /></dd></div>
-                            @endif
-                            <div class="flex justify-between"><dt class="text-ink-500">Shipping</dt><dd><x-money :amount="$order->shipping_total" /></dd></div>
-                            @if ($order->service_charge_total > 0)
-                                <div class="flex justify-between"><dt class="text-ink-500">Service charge</dt><dd><x-money :amount="$order->service_charge_total" /></dd></div>
-                            @endif
-                            @if ($order->handling_charge_total > 0)
-                                <div class="flex justify-between"><dt class="text-ink-500">Handling charge</dt><dd><x-money :amount="$order->handling_charge_total" /></dd></div>
-                            @endif
-                            @if ($order->tax_total > 0)
-                                <div class="flex justify-between"><dt class="text-ink-500">{{ $order->tax_label }}</dt><dd><x-money :amount="$order->tax_total" /></dd></div>
-                            @endif
-                            <div class="flex justify-between font-semibold text-base pt-2 border-t border-ink-100"><dt>Grand total</dt><dd><x-money :amount="$order->grand_total" /></dd></div>
-                        </dl>
+                        <x-order.pricing-summary :record="$order" class="ds-body-sm max-w-sm ml-auto [&_dt]:text-ink-500" />
                     </div>
                 </div>
 

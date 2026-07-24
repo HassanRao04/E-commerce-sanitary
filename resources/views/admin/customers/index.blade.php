@@ -20,37 +20,53 @@
     </div>
 
     <div class="bg-white rounded-lg shadow overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200 text-sm">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-4 py-3 text-left">Customer</th>
-                    <th class="px-4 py-3 text-left">Type</th>
-                    <th class="px-4 py-3 text-left">Orders</th>
-                    <th class="px-4 py-3 text-left">Lifetime Spend</th>
-                    <th class="px-4 py-3 text-right">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-                @forelse ($customers as $customer)
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-gray-50">
                     <tr>
-                        <td class="px-4 py-3">
-                            <div class="font-medium">{{ $customer->user?->name ?? $customer->display_name }}</div>
-                            <div class="text-gray-500 text-xs">{{ $customer->user?->email }}</div>
-                        </td>
-                        <td class="px-4 py-3">{{ $customer->customer_type->value }}</td>
-                        <td class="px-4 py-3">{{ $customer->orders_count }}</td>
-                        <td class="px-4 py-3">{{ $customer->formatted_lifetime_spend }}</td>
-                        <td class="px-4 py-3 text-right space-x-2">
-                            @can('view', $customer)
-                                <a href="{{ route('admin.customers.show', $customer) }}" class="text-slate-700 hover:underline">View</a>
-                            @endcan
-                        </td>
+                        <th class="px-4 py-3 text-left">Customer</th>
+                        <th class="px-4 py-3 text-left">Phone</th>
+                        <th class="px-4 py-3 text-left">Registered</th>
+                        <th class="px-4 py-3 text-left">Orders</th>
+                        <th class="px-4 py-3 text-left">Lifetime Spend</th>
+                        <th class="px-4 py-3 text-left">Last Order</th>
+                        <th class="px-4 py-3 text-left">Status</th>
+                        <th class="px-4 py-3 text-right">Actions</th>
                     </tr>
-                @empty
-                    <tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No customers found.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    @forelse ($customers as $customer)
+                        <tr>
+                            <td class="px-4 py-3">
+                                <div class="font-medium">{{ $customer->user?->name ?? $customer->display_name }}</div>
+                                <div class="text-gray-500 text-xs">{{ $customer->user?->email }}</div>
+                            </td>
+                            <td class="px-4 py-3">{{ $customer->user?->phone ?? '—' }}</td>
+                            <td class="px-4 py-3">{{ $customer->user?->created_at?->format('d M Y') ?? '—' }}</td>
+                            <td class="px-4 py-3">{{ $customer->orders_count }}</td>
+                            <td class="px-4 py-3">{{ $customer->formatted_lifetime_spend }}</td>
+                            <td class="px-4 py-3">{{ $customer->last_order_at?->format('d M Y') ?? '—' }}</td>
+                            <td class="px-4 py-3">
+                                @if ($customer->user?->status)
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset {{ $customer->user->status->badgeClasses() }}">
+                                        {{ $customer->user->status->label() }}
+                                    </span>
+                                @else
+                                    —
+                                @endif
+                            </td>
+                            <td class="px-4 py-3 text-right space-x-2">
+                                @can('view', $customer)
+                                    <a href="{{ route('admin.customers.show', $customer) }}" class="text-slate-700 hover:underline">View</a>
+                                @endcan
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">No customers found.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
         @if ($customers->hasPages())
             <div class="px-4 py-3 border-t">{{ $customers->links() }}</div>
         @endif

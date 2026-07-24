@@ -26,16 +26,16 @@
                 $alwaysShowBillingFields = ! auth()->check() || $billingAddresses->isEmpty();
             @endphp
 
-            <form
-                id="checkout-form"
-                action="{{ route('shop.checkout.store') }}"
-                method="POST"
-                class="commerce-layout commerce-layout--checkout"
-                x-data="{ billingSameAsShipping: {{ old('billing_same_as_shipping', true) ? 'true' : 'false' }}, useNewShipping: {{ old('shipping_address_id') === '' ? 'true' : 'false' }}, useNewBilling: {{ old('billing_address_id') === '' ? 'true' : 'false' }} }"
-            >
-                @csrf
+            <div class="commerce-layout commerce-layout--checkout">
+                <form
+                    id="checkout-form"
+                    action="{{ route('shop.checkout.store') }}"
+                    method="POST"
+                    class="commerce-main commerce-main--checkout"
+                    x-data="{ billingSameAsShipping: {{ old('billing_same_as_shipping', true) ? 'true' : 'false' }}, useNewShipping: {{ old('shipping_address_id') === '' ? 'true' : 'false' }}, useNewBilling: {{ old('billing_address_id') === '' ? 'true' : 'false' }} }"
+                >
+                    @csrf
 
-                <div class="commerce-main commerce-main--checkout">
                     <section class="checkout-step">
                         <div class="checkout-step__head">
                             <span class="checkout-step__number">1</span>
@@ -160,7 +160,7 @@
                             </div>
                         </div>
                     </section>
-                </div>
+                </form>
 
                 <aside class="commerce-sidebar commerce-sidebar--sticky commerce-sidebar--checkout">
                     @include('storefront.checkout.partials.order-summary', [
@@ -170,12 +170,12 @@
                         'sticky' => false,
                     ])
 
-                    <button type="submit" class="ds-btn-primary ds-btn-lg w-full commerce-checkout-btn">
+                    <button type="submit" form="checkout-form" class="ds-btn-primary ds-btn-lg w-full commerce-checkout-btn">
                         <span class="block">Place order</span>
                         <span class="block text-sm font-semibold opacity-90 mt-0.5"><x-money :amount="$totals['grand_total']" /></span>
                     </button>
                 </aside>
-            </form>
+            </div>
 
             <div class="commerce-mobile-bar lg:hidden">
                 <div>

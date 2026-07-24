@@ -46,6 +46,8 @@ class ProductController extends Controller
             'variants.attributeValues.attributeValue',
             'attributeValues.attribute',
             'attributeValues.attributeValue',
+            'offers',
+            'pipeLengthOptions',
         ]);
 
         $relatedProducts = Product::query()
@@ -58,7 +60,7 @@ class ProductController extends Controller
                         $product->categories->pluck('id')
                     ));
             })
-            ->with(['brand', 'defaultVariant', 'images'])
+            ->with(['brand', 'defaultVariant', 'images', 'variants'])
             ->take(8)
             ->get();
 

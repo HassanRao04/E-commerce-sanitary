@@ -60,6 +60,12 @@
     @auth
         @if (auth()->user()->isStaff())
             <a href="{{ route('admin.dashboard') }}" class="block rounded-ds px-3 py-2.5 text-sm font-medium text-ink hover:bg-surface-muted" @click="mobileOpen = false">Admin</a>
+        @elseif (auth()->user()->isInfluencer())
+            <a href="{{ route('influencer.dashboard') }}" class="block rounded-ds px-3 py-2.5 text-sm font-medium text-ink hover:bg-surface-muted" @click="mobileOpen = false">Influencer dashboard</a>
+            <a href="{{ route('influencer.orders.index') }}" class="block rounded-ds px-3 py-2.5 text-sm font-medium text-ink hover:bg-surface-muted" @click="mobileOpen = false">Orders</a>
+            <a href="{{ route('influencer.wallet') }}" class="block rounded-ds px-3 py-2.5 text-sm font-medium text-ink hover:bg-surface-muted" @click="mobileOpen = false">Wallet</a>
+            <a href="{{ route('influencer.commissions.index') }}" class="block rounded-ds px-3 py-2.5 text-sm font-medium text-ink hover:bg-surface-muted" @click="mobileOpen = false">Commissions</a>
+            <a href="{{ route('profile.edit') }}" class="block rounded-ds px-3 py-2.5 text-sm font-medium text-ink hover:bg-surface-muted" @click="mobileOpen = false">Profile</a>
         @else
             <a href="{{ route('shop.account.dashboard') }}" class="block rounded-ds px-3 py-2.5 text-sm font-medium text-ink hover:bg-surface-muted" @click="mobileOpen = false">Dashboard</a>
             <a href="{{ route('shop.account.orders.index') }}" class="block rounded-ds px-3 py-2.5 text-sm font-medium text-ink hover:bg-surface-muted" @click="mobileOpen = false">My orders</a>

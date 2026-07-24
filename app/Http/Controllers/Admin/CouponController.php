@@ -7,19 +7,24 @@ use App\Http\Requests\Admin\StoreCouponRequest;
 use App\Http\Requests\Admin\UpdateCouponRequest;
 use App\Models\Coupon;
 use App\Services\ActivityLogService;
+use App\Services\Admin\UserService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class CouponController extends Controller
 {
-    public function __construct(private readonly ActivityLogService $activityLog) {}
+    public function __construct(
+        private readonly ActivityLogService $activityLog,
+        private readonly UserService $users,
+    ) {}
 
     public function index(Request $request): View
     {
         $this->authorize('viewAny', Coupon::class);
 
         $coupons = Coupon::query()
+            ->with('influencer:id,name,email')
             ->when($request->filled('q'), fn ($q) => $q->where('code', 'like', '%'.$request->input('q').'%'))
             ->when($request->boolean('active_only'), fn ($q) => $q->valid())
             ->latest('id')
@@ -33,7 +38,10 @@ class CouponController extends Controller
     {
         $this->authorize('create', Coupon::class);
 
-        return view('admin.coupons.form', ['coupon' => new Coupon(['is_active' => true])]);
+        return view('admin.coupons.form', [
+            'coupon' => new Coupon(['is_active' => true, 'commission_enabled' => false]),
+            'influencers' => $this->users->listInfluencers(),
+        ]);
     }
 
     public function store(StoreCouponRequest $request): RedirectResponse
@@ -52,7 +60,10 @@ class CouponController extends Controller
     {
         $this->authorize('update', $coupon);
 
-        return view('admin.coupons.form', compact('coupon'));
+        return view('admin.coupons.form', [
+            'coupon' => $coupon,
+            'influencers' => $this->users->listInfluencers($coupon->influencer_id),
+        ]);
     }
 
     public function update(UpdateCouponRequest $request, Coupon $coupon): RedirectResponse
@@ -82,8 +93,17 @@ class CouponController extends Controller
     private function payload(array $data): array
     {
         $data['is_active'] = (bool) ($data['is_active'] ?? false);
+        $data['commission_enabled'] = (bool) ($data['commission_enabled'] ?? false);
 
-        foreach (['min_order_amount', 'max_uses', 'starts_at', 'expires_at'] as $field) {
+        foreach ([
+            'min_order_amount',
+            'max_uses',
+            'starts_at',
+            'expires_at',
+            'influencer_id',
+            'commission_type',
+            'commission_value',
+        ] as $field) {
             if (array_key_exists($field, $data) && blank($data[$field])) {
                 $data[$field] = null;
             }

@@ -3,6 +3,10 @@
     overflow: hidden;
 }
 
+.product-carousel-section.ds-section-tight {
+    padding-block: var(--home-section-pad, clamp(3rem, 6vw, 4.5rem));
+}
+
 .product-carousel-section--muted {
     background: linear-gradient(180deg, rgb(250 250 250) 0%, rgb(255 255 255) 100%);
     border-block: 1px solid rgb(232 232 237);
@@ -21,7 +25,7 @@
     align-items: end;
     justify-content: space-between;
     gap: 1rem 1.5rem;
-    margin-bottom: 1.75rem;
+    margin-bottom: clamp(1.4rem, 2.6vw, 2.15rem);
 }
 
 .product-carousel__nav {
@@ -29,6 +33,24 @@
     align-items: center;
     gap: 0.5rem;
     flex-shrink: 0;
+}
+
+.product-carousel__nav .ds-btn-icon {
+    border-radius: 9999px;
+    transition:
+        transform 250ms cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 250ms cubic-bezier(0.22, 1, 0.36, 1),
+        background 250ms cubic-bezier(0.22, 1, 0.36, 1),
+        border-color 250ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.product-carousel__nav .ds-btn-icon:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px -10px rgb(11 11 15 / 0.22);
+}
+
+.product-carousel__nav .ds-btn-icon:active {
+    transform: translateY(0) scale(0.96);
 }
 
 @media (min-width: 640px) {
@@ -39,13 +61,101 @@
 
 .product-carousel__slider {
     overflow: hidden;
+    padding-bottom: 1rem;
+    margin-bottom: -0.25rem;
 }
 
 .product-carousel__slider .swiper-slide {
     height: auto;
     display: flex;
+    padding-block: 0.5rem 0.75rem;
 }
 
 .product-carousel__slider .swiper-slide > * {
     width: 100%;
+}
+
+.product-carousel__slider .swiper-slide > .product-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Best sellers — editorial band + progress carousel ─────────── */
+.product-carousel-section--bestsellers {
+    --bs-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    background:
+        radial-gradient(circle at 12% 0%, rgb(11 11 15 / 0.04), transparent 38%),
+        radial-gradient(circle at 88% 100%, rgb(0 113 227 / 0.06), transparent 42%),
+        linear-gradient(180deg, rgb(248 248 250) 0%, rgb(255 255 255) 58%, rgb(250 250 250) 100%);
+    border-block: 1px solid rgb(232 232 237);
+}
+
+.product-carousel-section--bestsellers::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgb(11 11 15 / 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgb(11 11 15 / 0.025) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.45), transparent 85%);
+}
+
+.product-carousel-section--bestsellers .ds-container {
+    position: relative;
+    z-index: 1;
+}
+
+.product-carousel-section--bestsellers .product-carousel__nav .ds-btn-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-color: rgb(209 209 214);
+    background: rgb(255 255 255 / 0.92);
+    box-shadow: 0 8px 20px -12px rgb(11 11 15 / 0.2);
+}
+
+.product-carousel-section--bestsellers .product-carousel__track {
+    position: relative;
+}
+
+.product-carousel-section--bestsellers .product-carousel__slider {
+    padding-bottom: 1.35rem;
+}
+
+.product-carousel-section--bestsellers .product-carousel__slider .swiper-slide {
+    padding-block: 0.65rem 1rem;
+}
+
+.product-carousel-section--bestsellers .product-carousel__progress {
+    position: relative;
+    height: 3px;
+    margin-top: 0.35rem;
+    border-radius: 9999px;
+    overflow: hidden;
+    background: rgb(232 232 237);
+}
+
+.product-carousel-section--bestsellers .product-carousel__progress-bar {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, rgb(11 11 15), rgb(0 113 227));
+    transform-origin: left center;
+    transition: width 450ms var(--bs-ease);
+}
+
+@media (max-width: 639px) {
+    .product-carousel-section--bestsellers .product-carousel__slider {
+        padding-bottom: 1.35rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .product-carousel-section--bestsellers .product-carousel__progress-bar {
+        transition: none;
+    }
 }

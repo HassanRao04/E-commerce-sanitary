@@ -32,34 +32,6 @@
     color: white;
 }
 
-/* Scroll reveal */
-.trust-reveal {
-    opacity: 0;
-    transform: translateY(1.25rem);
-    transition:
-        opacity 550ms cubic-bezier(0.22, 1, 0.36, 1),
-        transform 550ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.trust-reveal.is-visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.trust-reveal[data-delay='1'] { transition-delay: 60ms; }
-.trust-reveal[data-delay='2'] { transition-delay: 120ms; }
-.trust-reveal[data-delay='3'] { transition-delay: 180ms; }
-.trust-reveal[data-delay='4'] { transition-delay: 240ms; }
-.trust-reveal[data-delay='5'] { transition-delay: 300ms; }
-
-@media (prefers-reduced-motion: reduce) {
-    .trust-reveal {
-        opacity: 1;
-        transform: none;
-        transition: none;
-    }
-}
-
 /* Why Choose Us cards */
 .trust-grid {
     display: grid;

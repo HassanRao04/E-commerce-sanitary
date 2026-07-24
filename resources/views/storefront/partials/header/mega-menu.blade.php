@@ -10,7 +10,7 @@
     x-transition:leave-end="opacity-0 -translate-y-2"
     @mouseenter="megaOpen = true"
     @mouseleave="megaOpen = false"
-    class="hidden lg:block absolute inset-x-0 top-full border-b border-ink-100 bg-surface shadow-ds-lg"
+    class="hidden md:block absolute inset-x-0 top-full z-[60] border-b border-ink-100 bg-surface shadow-ds-lg"
     role="region"
     aria-label="Shop categories"
 >

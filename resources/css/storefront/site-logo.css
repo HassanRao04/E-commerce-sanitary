@@ -4,22 +4,23 @@
     width: auto;
     height: auto;
     max-height: 2rem;
-    max-width: min(100%, 8.5rem);
+    max-width: min(100%, 7.5rem);
     object-fit: contain;
     object-position: left center;
+    border-radius: 0.4rem;
 }
 
 @media (min-width: 640px) {
     .ds-root img.storefront-site-logo__image {
         max-height: 2.25rem;
-        max-width: min(100%, 10rem);
+        max-width: min(100%, 9rem);
     }
 }
 
 @media (min-width: 1024px) {
     .ds-root img.storefront-site-logo__image {
         max-height: 2.5rem;
-        max-width: min(100%, 11rem);
+        max-width: min(100%, 10rem);
     }
 }
 
@@ -27,19 +28,19 @@
     display: inline-flex;
     align-items: center;
     flex-shrink: 0;
-    max-width: 8.5rem;
+    max-width: 7.5rem;
     line-height: 1;
 }
 
 @media (min-width: 640px) {
     .storefront-site-logo {
-        max-width: 10rem;
+        max-width: 9rem;
     }
 }
 
 @media (min-width: 1024px) {
     .storefront-site-logo {
-        max-width: 11rem;
+        max-width: 10rem;
     }
 }
 
@@ -85,4 +86,21 @@
     font-size: 1.375rem;
     font-weight: 700;
     color: white;
+}
+
+.storefront-site-logo--hero {
+    max-width: min(100%, 14rem);
+    pointer-events: auto;
+}
+
+.storefront-site-logo--hero .storefront-site-logo__text {
+    font-size: clamp(1.375rem, 3vw, 1.875rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: white;
+}
+
+.ds-root img.storefront-site-logo__image--hero {
+    max-height: clamp(2rem, 4vw, 2.75rem);
+    max-width: min(100%, 14rem);
 }

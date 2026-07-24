@@ -78,11 +78,36 @@ class SocialLinks
                 'key' => 'whatsapp',
                 'label' => 'WhatsApp',
                 'icon' => 'whatsapp',
-                'url' => 'https://wa.me/'.preg_replace('/\D+/', '', (string) $settings->whatsapp),
+                'url' => self::whatsappUrl(settings: $settings) ?? '',
             ]);
         }
 
-        return $items;
+        return $items->filter(fn (array $item): bool => filled($item['url'] ?? null))->values();
+    }
+
+    public static function whatsappDigits(?SiteSetting $settings = null): ?string
+    {
+        $settings ??= SiteSetting::current();
+        $digits = preg_replace('/\D+/', '', (string) ($settings->whatsapp ?? ''));
+
+        return filled($digits) ? $digits : null;
+    }
+
+    public static function whatsappUrl(?string $text = null, ?SiteSetting $settings = null): ?string
+    {
+        $digits = self::whatsappDigits($settings);
+
+        if ($digits === null) {
+            return null;
+        }
+
+        $url = 'https://wa.me/'.$digits;
+
+        if (filled($text)) {
+            $url .= '?text='.rawurlencode($text);
+        }
+
+        return $url;
     }
 
     public static function hasAny(?SiteSetting $settings = null): bool

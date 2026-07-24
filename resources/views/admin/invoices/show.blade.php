@@ -20,7 +20,10 @@
                 <tbody class="divide-y divide-gray-100">
                     @foreach ($invoice->items as $item)
                         <tr>
-                            <td class="py-2">{{ $item->product_name }} {{ $item->variant_name }}</td>
+                            <td class="py-2">
+                                <p>{{ $item->product_name }} {{ $item->variant_name }}</p>
+                                <x-order.item-offer-meta :item="$item" class="text-gray-500" />
+                            </td>
                             <td>{{ $item->quantity }}</td>
                             <td>{{ config('shop.currency_symbol') }} {{ number_format($item->unit_price, 2) }}</td>
                             <td>{{ config('shop.currency_symbol') }} {{ number_format($item->total, 2) }}</td>
@@ -29,9 +32,12 @@
                 </tbody>
             </table>
 
-            <div class="mt-4 text-right text-sm space-y-1">
-                <div>Subtotal: {{ config('shop.currency_symbol') }} {{ number_format($invoice->subtotal, 2) }}</div>
-                <div class="font-semibold text-lg">Total: {{ $invoice->formatted_total }}</div>
+            <div class="mt-4 text-sm">
+                <x-order.pricing-summary
+                    :record="$invoice"
+                    :show-charges="true"
+                    class="max-w-sm ml-auto [&_dt]:text-gray-600"
+                />
             </div>
         </div>
 

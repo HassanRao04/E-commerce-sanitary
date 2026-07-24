@@ -25,6 +25,8 @@ class CustomerService
         return Customer::query()
             ->with(['user.addresses'])
             ->withCount('orders')
+            ->withSum('orders', 'grand_total')
+            ->withMax('orders', 'created_at')
             ->findOrFail($id);
     }
 

@@ -1,9 +1,6 @@
 import Swiper from 'swiper';
 import { A11y, Autoplay, Navigation, Pagination } from 'swiper/modules';
 
-import 'swiper/css';
-import 'swiper/css/pagination';
-
 /**
  * Premium testimonials carousel — autoplay, pagination, slide animations.
  */

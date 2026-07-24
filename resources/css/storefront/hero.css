@@ -1,97 +1,214 @@
 /**
- * Storefront hero slider — Swiper overrides & slide animations
+ * Luxury storefront hero — full-viewport, GSAP+CSS motion, AOS chrome.
  */
 
 .hero-swiper {
-    --hero-height: clamp(28rem, 72vh, 44rem);
+    --hero-height: 100svh;
+    --hero-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    overflow: hidden;
+    background: rgb(11 11 15);
+    color: white;
 }
 
-@media (min-width: 1024px) {
+@supports (height: 100dvh) {
     .hero-swiper {
-        --hero-height: clamp(32rem, 85vh, 48rem);
+        --hero-height: 100dvh;
     }
 }
 
-.hero-swiper__slider {
+.hero-swiper__slider,
+.hero-swiper__slide {
     min-height: var(--hero-height);
+    height: var(--hero-height);
 }
 
 .hero-swiper__slide {
-    min-height: var(--hero-height);
+    position: relative;
     overflow: hidden;
 }
 
+/* ── Product / lifestyle image (full-bleed; GSAP owns transform) ─ */
 .hero-swiper__bg {
     position: absolute;
-    inset: 0;
+    inset: -4%;
+    z-index: 0;
     background-size: cover;
-    background-position: center;
-    will-change: transform;
+    background-position: center center;
+    background-repeat: no-repeat;
+    transform-origin: center center;
+    backface-visibility: hidden;
 }
 
+.hero-swiper.is-enhanced .hero-swiper__bg {
+    will-change: transform, opacity;
+}
+
+.hero-swiper.is-enhanced .swiper-slide:not(.swiper-slide-active) .hero-swiper__bg {
+    will-change: auto;
+}
+
+/* ── Gradient overlay ─────────────────────────────────────────── */
 .hero-swiper__overlay {
     position: absolute;
     inset: 0;
-    pointer-events: none;
     z-index: 1;
+    pointer-events: none;
+    background:
+        linear-gradient(
+            to bottom,
+            rgb(11 11 15 / 0.5) 0%,
+            rgb(11 11 15 / 0.15) 18%,
+            transparent 36%
+        ),
+        linear-gradient(
+            105deg,
+            rgb(11 11 15 / 0.86) 0%,
+            rgb(11 11 15 / 0.58) 40%,
+            rgb(11 11 15 / 0.25) 70%,
+            rgb(11 11 15 / 0.4) 100%
+        ),
+        linear-gradient(
+            to top,
+            rgb(11 11 15 / 0.55) 0%,
+            transparent 40%
+        );
 }
 
-.hero-swiper__overlay--photo {
-    background: linear-gradient(
-        to right,
-        rgb(11 11 15 / 0.9) 0%,
-        rgb(11 11 15 / 0.72) 42%,
-        rgb(11 11 15 / 0.35) 100%
-    ) !important;
+.hero-swiper__overlay--fallback {
+    background:
+        linear-gradient(
+            120deg,
+            rgb(11 11 15 / 0.55) 0%,
+            rgb(11 11 15 / 0.2) 50%,
+            rgb(11 11 15 / 0.45) 100%
+        );
 }
 
-.hero-swiper__orb {
-    position: absolute;
-    border-radius: 9999px;
-    filter: blur(64px);
-    opacity: 0.45;
-    will-change: transform;
-}
-
-.hero-swiper__grid {
-    position: absolute;
-    inset: 0;
-    opacity: 0.08;
-    background-image:
-        linear-gradient(rgb(255 255 255 / 0.35) 1px, transparent 1px),
-        linear-gradient(90deg, rgb(255 255 255 / 0.35) 1px, transparent 1px);
-    background-size: 48px 48px;
-    mask-image: radial-gradient(circle at 30% 40%, black, transparent 72%);
-}
-
+/* ── Content ──────────────────────────────────────────────────── */
 .hero-swiper__content {
     position: relative;
     z-index: 10;
     display: flex;
-    min-height: var(--hero-height);
     align-items: center;
-    padding-top: 2.5rem;
-    padding-bottom: 4.5rem;
+    min-height: var(--hero-height);
+    height: var(--hero-height);
+    /* Clear the fixed translucent header; offset measured in header.js */
+    padding-top: calc(var(--storefront-header-offset, 7.25rem) + clamp(1rem, 2.5vh, 2rem));
+    padding-bottom: clamp(4.5rem, 10vh, 7rem);
 }
 
-.hero-swiper [data-hero-animate] {
-    opacity: 0;
-    transform: translate3d(0, 28px, 0);
+.hero-swiper__copy {
+    max-width: 42rem;
+    width: 100%;
+}
+
+.hero-swiper__eyebrow {
+    margin: 0;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgb(255 255 255 / 0.7);
+}
+
+.hero-swiper__title {
+    margin: 1rem 0 0;
+    font-family: var(--ds-font-display, 'Instrument Sans', Inter, sans-serif);
+    font-size: clamp(2.25rem, 6.5vw, 5rem);
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    line-height: 1.02;
+    text-wrap: balance;
+    color: white;
+}
+
+.hero-swiper__subtitle {
+    margin: 1.25rem 0 0;
+    max-width: 32rem;
+    font-size: clamp(1rem, 2.2vw, 1.25rem);
+    font-weight: 400;
+    line-height: 1.65;
+    color: rgb(255 255 255 / 0.78);
+    text-wrap: pretty;
+}
+
+/* ── CTAs (CSS transitions — elegant hover) ───────────────────── */
+.hero-swiper__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.875rem;
+    margin-top: 2rem;
+}
+
+.hero-swiper__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3.25rem;
+    padding: 0.875rem 1.75rem;
+    border-radius: 9999px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-decoration: none;
     transition:
-        opacity 650ms cubic-bezier(0.22, 1, 0.36, 1),
-        transform 650ms cubic-bezier(0.22, 1, 0.36, 1);
-    transition-delay: var(--hero-delay, 0ms);
+        transform 280ms var(--hero-ease),
+        background-color 280ms var(--hero-ease),
+        border-color 280ms var(--hero-ease),
+        color 280ms var(--hero-ease),
+        box-shadow 280ms var(--hero-ease);
 }
 
-.hero-swiper [data-hero-animate].is-visible {
+.hero-swiper__btn--primary {
+    background: white;
+    color: rgb(11 11 15);
+    box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.45);
+}
+
+.hero-swiper__btn--primary:hover {
+    background: rgb(245 245 247);
+    transform: translateY(-2px);
+    box-shadow: 0 14px 32px -14px rgb(0 0 0 / 0.5);
+}
+
+.hero-swiper__btn--primary:active {
+    transform: translateY(0) scale(0.985);
+}
+
+.hero-swiper__btn--secondary {
+    background: rgb(255 255 255 / 0.06);
+    border: 1px solid rgb(255 255 255 / 0.34);
+    color: white;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.hero-swiper__btn--secondary:hover {
+    background: rgb(255 255 255 / 0.12);
+    border-color: rgb(255 255 255 / 0.5);
+    transform: translateY(-2px);
+}
+
+.hero-swiper__btn--secondary:active {
+    transform: translateY(0) scale(0.985);
+}
+
+/* FOUC guard — GSAP owns reveal after enhance */
+.hero-swiper.is-enhanced [data-hero-animate]:not(.is-visible) {
+    visibility: hidden;
+}
+
+.hero-swiper:not(.is-enhanced) [data-hero-animate] {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: none;
 }
 
+/* ── Pagination (AOS fade-up on load) ─────────────────────────── */
 .hero-swiper__pagination {
     position: absolute !important;
     left: 50% !important;
-    bottom: 1.25rem !important;
+    bottom: 1.5rem !important;
     transform: translateX(-50%);
     z-index: 20;
     display: flex;
@@ -117,14 +234,19 @@
     border-radius: 9999px;
     border: 1px solid rgb(255 255 255 / 0.22);
     background: rgb(255 255 255 / 0.08);
-    padding: 0.375rem 0.875rem;
+    padding: 0.4rem 0.9rem;
     font-size: 0.6875rem;
     font-weight: 600;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     color: rgb(255 255 255 / 0.72);
-    backdrop-filter: blur(8px);
-    transition: all 250ms cubic-bezier(0.22, 1, 0.36, 1);
+    backdrop-filter: blur(10px);
+    transition:
+        background 280ms var(--hero-ease),
+        border-color 280ms var(--hero-ease),
+        color 280ms var(--hero-ease),
+        box-shadow 280ms var(--hero-ease),
+        transform 280ms var(--hero-ease);
 }
 
 @media (max-width: 639px) {
@@ -137,26 +259,85 @@
         height: 0.5rem;
         border-radius: 9999px;
         background: rgb(255 255 255 / 0.35);
+        transition: transform 250ms var(--hero-ease), background 250ms var(--hero-ease);
     }
 
     .hero-swiper__pagination .swiper-pagination-bullet-active {
-        background: black;
+        background: white;
         transform: scale(1.15);
+    }
+
+    .hero-swiper__actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .hero-swiper__btn {
+        width: 100%;
+    }
+
+    .hero-swiper__content {
+        align-items: flex-end;
+        padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+/* Short viewports (landscape phones / compact tablets) */
+@media (max-height: 700px) {
+    .hero-swiper__title {
+        font-size: clamp(1.875rem, 5vw, 3rem);
+        margin-top: 0.65rem;
+    }
+
+    .hero-swiper__subtitle {
+        margin-top: 0.75rem;
+        font-size: clamp(0.9375rem, 2vw, 1.125rem);
+    }
+
+    .hero-swiper__content {
+        padding-bottom: clamp(3.25rem, 8vh, 4.5rem);
     }
 }
 
 .hero-swiper__pagination .swiper-pagination-bullet-active .hero-swiper__bullet-label {
     border-color: rgb(255 255 255 / 0.55);
-    background: rgb(255 255 255 / 0.95);
-    color: #0b0b0f;
-    box-shadow: 0 8px 24px -8px rgb(0 0 0 / 0.35);
+    background: rgb(255 255 255 / 0.96);
+    color: rgb(11 11 15);
+    box-shadow: 0 8px 24px -8px rgb(0 0 0 / 0.4);
 }
 
+/* ── Nav arrows (AOS fade on load) ────────────────────────────── */
 .hero-swiper__nav {
     position: absolute;
     top: 50%;
     z-index: 20;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 9999px;
+    border: 1px solid rgb(255 255 255 / 0.22);
+    background: rgb(11 11 15 / 0.35);
+    color: white;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     transform: translateY(-50%);
+    transition:
+        background 250ms var(--hero-ease),
+        border-color 250ms var(--hero-ease),
+        transform 250ms var(--hero-ease);
+}
+
+@media (min-width: 640px) {
+    .hero-swiper__nav {
+        display: inline-flex;
+    }
+}
+
+.hero-swiper__nav:hover {
+    background: rgb(255 255 255 / 0.16);
+    border-color: rgb(255 255 255 / 0.4);
 }
 
 .hero-swiper__nav--prev {
@@ -177,49 +358,41 @@
     }
 }
 
+/* ── Autoplay progress ────────────────────────────────────────── */
 .hero-swiper__progress {
     position: absolute;
     left: 0;
     bottom: 0;
     z-index: 25;
-    height: 3px;
+    height: 2px;
     width: 100%;
     transform-origin: left center;
     transform: scaleX(0);
-    background: linear-gradient(90deg, #0071e3, #ffffff);
-    transition: transform linear;
+    background: linear-gradient(90deg, rgb(255 255 255 / 0.35), white);
 }
 
-.hero-swiper__promo-card {
-    position: relative;
-    overflow: hidden;
-    border-radius: 1rem;
-    border: 1px solid rgb(255 255 255 / 0.14);
-    background: rgb(255 255 255 / 0.08);
-    backdrop-filter: blur(12px);
-    box-shadow: 0 24px 48px -24px rgb(0 0 0 / 0.45);
-}
+/* ── Reduced motion ───────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .hero-swiper__bg {
+        inset: 0;
+        transform: none !important;
+        opacity: 1 !important;
+        will-change: auto;
+    }
 
-.hero-swiper__promo-card::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgb(255 255 255 / 0.12), transparent 55%);
-    pointer-events: none;
-}
+    .hero-swiper--reduced-motion [data-hero-animate],
+    .hero-swiper:not(.is-enhanced) [data-hero-animate] {
+        visibility: visible !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
 
-.hero-swiper__shine {
-    position: absolute;
-    top: -20%;
-    right: -10%;
-    width: 40%;
-    height: 140%;
-    transform: rotate(18deg);
-    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.12), transparent);
-    animation: hero-shine 6s ease-in-out infinite;
-}
+    .hero-swiper--reduced-motion .hero-swiper__progress {
+        display: none;
+    }
 
-@keyframes hero-shine {
-    0%, 100% { transform: rotate(18deg) translateX(-120%); }
-    50% { transform: rotate(18deg) translateX(120%); }
+    .hero-swiper__btn--primary:hover,
+    .hero-swiper__btn--secondary:hover {
+        transform: none;
+    }
 }

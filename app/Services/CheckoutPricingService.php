@@ -52,6 +52,7 @@ class CheckoutPricingService
             'qualifies_for_free_shipping',
             'shipping_method',
             'coupon_code',
+            'qualifies_for_free_shipping',
         ])->all();
     }
 }

@@ -6,6 +6,7 @@ use App\Enums\PaymentStatus;
 use App\Enums\ProductStatus;
 use App\Models\Customer;
 use App\Models\Inventory;
+use App\Models\Notification;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -29,6 +30,7 @@ class DashboardService
             'lowStock' => $this->lowStock(),
             'recentCustomers' => $this->recentCustomers(),
             'recentOrders' => $this->recentOrders(),
+            'inquiryNotifications' => $this->inquiryNotifications(),
             'orderStatusBreakdown' => $this->orderStatusBreakdown(),
             'reportWidgets' => $this->reportService->dashboardWidgets(),
         ];
@@ -135,6 +137,21 @@ class DashboardService
         return Order::query()
             ->with('orderStatus')
             ->latest('created_at')
+            ->limit($limit)
+            ->get();
+    }
+
+    public function inquiryNotifications(int $limit = 10): Collection
+    {
+        if (! auth()->user()?->can('notifications.view')) {
+            return collect();
+        }
+
+        return Notification::query()
+            ->where('user_id', auth()->id())
+            ->where('type', 'admin.inquiry_received')
+            ->whereNull('read_at')
+            ->latest()
             ->limit($limit)
             ->get();
     }

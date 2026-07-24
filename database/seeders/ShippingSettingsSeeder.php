@@ -15,17 +15,17 @@ class ShippingSettingsSeeder extends Seeder
 {
     public function run(): void
     {
-        $settings = ShippingSetting::current();
-
-        $settings->update([
-            'flat_rate_enabled' => true,
-            'flat_rate_amount' => 100,
-            'product_rate_enabled' => true,
-            'category_rate_enabled' => true,
-            'free_shipping_enabled' => true,
-            'free_shipping_threshold' => 5000,
-            'default_method' => ShippingMethod::Flat,
-        ]);
+        // sync() enables only the selected default method (Flat here).
+        app(ShippingSettingsService::class)->sync(
+            [
+                'flat_rate_amount' => 300,
+                'free_shipping_enabled' => true,
+                'free_shipping_threshold' => 10000,
+                'default_method' => ShippingMethod::Flat,
+            ],
+            [],
+            [],
+        );
 
         $category = Category::query()
             ->where('name', 'Basins & Sinks')
@@ -45,10 +45,14 @@ class ShippingSettingsSeeder extends Seeder
         if ($product) {
             ProductShippingRate::updateOrCreate(
                 ['product_id' => $product->id],
-                ['amount' => 350, 'is_active' => true],
+                ['amount' => 350, 'free_shipping' => false, 'is_active' => true],
             );
         }
 
+        // Rate rows were written outside sync(); refresh rate caches.
         app(ShippingSettingsService::class)->clearCache();
+
+        // Ensure model reference stays valid for callers that expect a row.
+        ShippingSetting::current();
     }
 }

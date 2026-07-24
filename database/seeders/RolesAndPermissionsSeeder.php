@@ -68,7 +68,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'checkout_rules.view', 'checkout_rules.manage',
                 'reviews.view', 'reviews.moderate',
                 'reports.view',
-                'notifications.view',
+                'notifications.view', 'notifications.manage',
             ],
             'inventory-staff' => [
                 'dashboard.view',
@@ -85,6 +85,7 @@ class RolesAndPermissionsSeeder extends Seeder
                 'payments.view',
                 'coupons.view',
                 'reports.view',
+                'notifications.view',
             ],
             'content-manager' => [
                 'dashboard.view',
@@ -94,8 +95,10 @@ class RolesAndPermissionsSeeder extends Seeder
                 'brands.view', 'brands.manage',
                 'reviews.view', 'reviews.moderate',
                 'settings.view',
+                'notifications.view', 'notifications.manage',
             ],
             'customer' => [],
+            'influencer' => [],
         ];
 
         foreach ($roles as $roleName => $rolePermissions) {

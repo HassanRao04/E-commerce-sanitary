@@ -94,7 +94,7 @@ class OrderController extends Controller
         }
 
         return view('admin.invoices.print', [
-            'invoice' => $order->invoice,
+            'invoice' => $order->invoice->loadMissing(['items', 'order']),
             'order' => $order,
         ]);
     }

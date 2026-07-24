@@ -15,7 +15,11 @@ class CustomerRepository extends BaseRepository implements CustomerRepositoryInt
 
     public function search(?string $term = null, array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $query = Customer::query()->with('user')->withCount('orders');
+        $query = Customer::query()
+            ->with('user')
+            ->withCount('orders')
+            ->withSum('orders', 'grand_total')
+            ->withMax('orders', 'created_at');
 
         if ($term) {
             $query->where(function ($q) use ($term) {

@@ -100,6 +100,20 @@ document.addEventListener('alpine:init', () => {
             _key: attribute._key || nextKey('attr'),
         })),
         productAttributes: config.productAttributes || [],
+        offersEnabled: Boolean(config.offersEnabled),
+        offerTiers: (config.offerTiers || []).map((tier) => ({
+            buy_quantity: tier.buy_quantity ?? '',
+            discount_percent: tier.discount_percent ?? '',
+            free_shipping: Boolean(tier.free_shipping),
+            _key: tier._key || nextKey('offer'),
+        })),
+        pipeLengthEnabled: Boolean(config.pipeLengthEnabled),
+        optionTitle: config.optionTitle ?? '',
+        pipeLengthOptions: (config.pipeLengthOptions || []).map((option) => ({
+            label: option.label ?? '',
+            additional_price: option.additional_price ?? '',
+            _key: option._key || nextKey('pipe'),
+        })),
         variantAttributes: config.variantAttributes || [],
         imagePreviews: [],
         removedImages: config.removedImages || [],
@@ -125,6 +139,31 @@ document.addEventListener('alpine:init', () => {
         valueLabel,
         valueHex,
         normalizeHexInput,
+
+        addOfferTier() {
+            this.offerTiers.push({
+                buy_quantity: '',
+                discount_percent: '',
+                free_shipping: false,
+                _key: nextKey('offer'),
+            });
+        },
+
+        removeOfferTier(index) {
+            this.offerTiers.splice(index, 1);
+        },
+
+        addPipeLengthOption() {
+            this.pipeLengthOptions.push({
+                label: '',
+                additional_price: '',
+                _key: nextKey('pipe'),
+            });
+        },
+
+        removePipeLengthOption(index) {
+            this.pipeLengthOptions.splice(index, 1);
+        },
 
         slugifyName() {
             const nameInput = document.getElementById('name');

@@ -39,6 +39,8 @@ class CartController extends Controller
             $request->integer('product_id'),
             $request->integer('product_variant_id') ?: null,
             $request->integer('quantity'),
+            $request->integer('product_offer_id') ?: null,
+            $request->integer('pipe_length_option_id') ?: null,
         );
 
         if ($request->wantsJson()) {
@@ -58,7 +60,17 @@ class CartController extends Controller
 
     public function update(UpdateCartItemRequest $request, CartItem $cartItem): RedirectResponse|JsonResponse
     {
-        $this->cartService->updateItem($cartItem, $request->integer('quantity'));
+        $options = [];
+
+        if ($request->exists('product_offer_id')) {
+            $options['product_offer_id'] = $request->integer('product_offer_id') ?: null;
+        }
+
+        if ($request->exists('pipe_length_option_id')) {
+            $options['pipe_length_option_id'] = $request->integer('pipe_length_option_id') ?: null;
+        }
+
+        $this->cartService->updateItem($cartItem, $request->integer('quantity'), $options);
 
         if ($request->wantsJson()) {
             return response()->json($this->cartService->preview());

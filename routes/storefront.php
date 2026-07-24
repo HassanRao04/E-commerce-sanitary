@@ -28,6 +28,7 @@ Route::name('shop.')->group(function (): void {
     Route::get('/about', [PageController::class, 'about'])->name('about');
     Route::get('/contact', [PageController::class, 'contact'])->name('contact');
     Route::post('/contact', [PageController::class, 'storeContact'])->name('contact.store');
+    Route::get('/contact/success', [PageController::class, 'contactSuccess'])->name('contact.success');
 
     Route::post('/newsletter', [NewsletterController::class, 'store'])->name('newsletter.store');
 

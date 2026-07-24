@@ -30,7 +30,7 @@
     $paymentMethods = $paymentsBlock['methods'] ?? [];
 @endphp
 
-<div class="trust-sections" data-trust-sections>
+<div class="trust-sections">
     <section class="trust-section ds-section-tight" aria-labelledby="trust-why-heading">
         <div class="ds-container">
             <header class="trust-section__header anim-gpu" data-aos="fade-up">
@@ -41,7 +41,7 @@
 
             <div class="trust-grid trust-grid--4 mt-10" data-gsap-stagger="fade-up" data-gsap-stagger-delay="0.1">
                 @foreach ($whyChooseUs as $item)
-                    <article class="trust-card anim-gpu" data-gsap-stagger-item data-gsap-hover="lift">
+                    <article class="trust-card anim-gpu" data-gsap-stagger-item>
                         <div class="trust-card__icon-wrap">
                             <x-storefront.trust.icon :name="$item['icon']" class="trust-card__icon" />
                         </div>
@@ -63,7 +63,7 @@
 
             <div class="trust-shipping-strip mt-10" data-gsap-stagger="slide-right" data-gsap-stagger-delay="0.08">
                 @foreach ($shippingBenefits as $item)
-                    <article class="trust-shipping-card anim-gpu" data-gsap-stagger-item data-gsap-hover="glow">
+                    <article class="trust-shipping-card anim-gpu" data-gsap-stagger-item>
                         <div class="trust-shipping-card__icon">
                             <x-storefront.trust.icon :name="$item['icon']" class="h-5 w-5" />
                         </div>
@@ -87,7 +87,7 @@
 
             <div class="trust-security-grid mt-10" data-gsap-stagger="fade-in" data-gsap-stagger-delay="0.12">
                 @foreach ($securityBadges as $item)
-                    <article class="trust-security-badge anim-gpu" data-gsap-stagger-item data-gsap-hover="scale">
+                    <article class="trust-security-badge anim-gpu" data-gsap-stagger-item>
                         <div class="trust-security-badge__icon">
                             <x-storefront.trust.icon :name="$item['icon']" class="h-6 w-6 text-white" />
                         </div>
@@ -109,7 +109,7 @@
 
             <div class="trust-payments mt-10" data-gsap-stagger="scale" data-gsap-stagger-delay="0.07">
                 @foreach ($paymentMethods as $method)
-                    <div class="trust-pay-card anim-gpu {{ $method['color'] }}" data-gsap-stagger-item data-gsap-hover="lift">
+                    <div class="trust-pay-card anim-gpu {{ $method['color'] }}" data-gsap-stagger-item>
                         <span class="trust-pay-card__mark">{{ $method['short'] }}</span>
                         <span class="trust-pay-card__label">{{ $method['label'] }}</span>
                     </div>

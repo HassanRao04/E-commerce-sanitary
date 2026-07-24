@@ -83,6 +83,35 @@
         @endcan
     </div>
 
+    @can('notifications.view')
+        @if ($inquiryNotifications->isNotEmpty())
+            <div class="mt-6 rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200/60">
+                <div class="mb-4 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-900">New Customer Inquiries</h3>
+                        <p class="text-sm text-gray-500">Unread contact form notifications</p>
+                    </div>
+                    <a href="{{ route('admin.inquiries.index') }}" class="text-sm font-medium text-indigo-600 hover:text-indigo-800">View all →</a>
+                </div>
+                <div class="divide-y divide-gray-100">
+                    @foreach ($inquiryNotifications as $notification)
+                        <form method="POST" action="{{ route('admin.notifications.open', $notification) }}" class="flex items-center justify-between gap-4 py-3">
+                            @csrf
+                            <button type="submit" class="flex min-w-0 flex-1 items-start gap-3 text-left hover:opacity-80">
+                                <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-indigo-500" aria-hidden="true"></span>
+                                <span class="min-w-0">
+                                    <span class="block text-sm font-medium text-gray-900">{{ $notification->title }}</span>
+                                    <span class="block truncate text-sm text-gray-600">{{ $notification->body }}</span>
+                                    <span class="block text-xs text-gray-400">{{ $notification->created_at?->diffForHumans() }}</span>
+                                </span>
+                            </button>
+                        </form>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+    @endcan
+
     {{-- Monthly sales chart --}}
     <div class="mt-6 rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-200/60" x-data="{ hover: null }">
         <div class="mb-5 flex items-center justify-between">

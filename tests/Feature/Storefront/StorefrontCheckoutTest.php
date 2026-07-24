@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Storefront;
 
+use App\Enums\CouponType;
 use App\Enums\PaymentMethod;
 use App\Models\Coupon;
 use App\Models\Inventory;
@@ -325,6 +326,72 @@ class StorefrontCheckoutTest extends TestCase
         $this->assertEquals(500.0, (float) $order->shipping_total);
         $this->assertGreaterThan(0, $order->tax_total);
         $this->assertEquals('WELCOME10', $order->coupon_code);
+        $this->assertNull($order->influencer_id);
+        $this->assertNull($order->coupon_id);
+        $this->assertEquals(0.0, (float) $order->influencer_commission_amount);
+    }
+
+    public function test_checkout_tracks_influencer_coupon_attribution(): void
+    {
+        $influencer = User::factory()->create([
+            'name' => 'Muhammad Hassan',
+            'email' => 'track.influencer@example.com',
+        ]);
+        $influencer->assignRole('influencer');
+
+        $coupon = Coupon::factory()->create([
+            'code' => 'HASSANTRACK',
+            'type' => CouponType::Percent,
+            'value' => 10,
+            'min_order_amount' => 0,
+            'is_active' => true,
+            'influencer_id' => $influencer->id,
+            'commission_enabled' => true,
+            'commission_type' => CouponType::Percent,
+            'commission_value' => 5,
+        ]);
+
+        $customer = User::factory()->create();
+        $customer->assignRole('customer');
+        $product = Product::query()->active()->with('defaultVariant')->first();
+
+        $this->actingAs($customer)
+            ->post(route('shop.cart.store'), [
+                'product_id' => $product->id,
+                'product_variant_id' => $product->defaultVariant->id,
+                'quantity' => 1,
+            ]);
+
+        $this->actingAs($customer)
+            ->post(route('shop.cart.coupon.apply'), ['code' => $coupon->code]);
+
+        $this->actingAs($customer)
+            ->from(route('shop.checkout.index'))
+            ->post(route('shop.checkout.store'), [
+                'customer_name' => $customer->name,
+                'customer_email' => $customer->email,
+                'customer_phone' => '03001112233',
+                'payment_method' => PaymentMethod::Cod->value,
+                'billing_same_as_shipping' => '1',
+                'shipping_line1' => '9 Track Lane',
+                'shipping_city' => 'Lahore',
+                'shipping_country' => 'Pakistan',
+            ])
+            ->assertRedirect();
+
+        $order = Order::query()->find(session('shop.last_order_id'));
+        $this->assertNotNull($order);
+        $this->assertEquals($customer->id, $order->user_id);
+        $this->assertEquals($coupon->id, $order->coupon_id);
+        $this->assertEquals($influencer->id, $order->influencer_id);
+        $this->assertEquals('HASSANTRACK', $order->coupon_code);
+        $this->assertGreaterThan(0, (float) $order->discount_total);
+        $this->assertGreaterThan(0, (float) $order->grand_total);
+        $this->assertEquals(
+            round((float) $order->grand_total * 0.05, 2),
+            (float) $order->influencer_commission_amount,
+        );
+        $this->assertNotNull($order->created_at);
     }
 
     public function test_checkout_page_shows_order_summary_and_coupon_form(): void

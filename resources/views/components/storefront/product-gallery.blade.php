@@ -32,6 +32,10 @@
                 :alt="activeImage.alt"
                 class="product-gallery__hero"
                 :class="{ 'is-switching': isSwitching }"
+                width="800"
+                height="1000"
+                decoding="async"
+                fetchpriority="high"
                 x-ref="heroImage"
             >
             <div
@@ -55,7 +59,7 @@
                     :aria-selected="(activeIndex === index).toString()"
                     :aria-label="`Show image ${index + 1}`"
                 >
-                    <img :src="image.url" :alt="image.alt" loading="lazy">
+                    <img :src="image.url" :alt="image.alt" width="96" height="96" loading="lazy" decoding="async">
                 </button>
             </template>
         </div>

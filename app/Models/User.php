@@ -38,6 +38,7 @@ class User extends Authenticatable
         'email',
         'phone',
         'profile_photo',
+        'notes',
         'status',
         'password',
         'email_verified_at',
@@ -325,6 +326,21 @@ class User extends Authenticatable
         return $this->customer();
     }
 
+    public function influencerCoupons(): HasMany
+    {
+        return $this->hasMany(Coupon::class, 'influencer_id');
+    }
+
+    public function influencerOrders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'influencer_id');
+    }
+
+    public function commissionTransactions(): HasMany
+    {
+        return $this->hasMany(InfluencerCommissionTransaction::class, 'influencer_id');
+    }
+
     public function isStaff(): bool
     {
         return $this->hasAnyRole([
@@ -340,6 +356,11 @@ class User extends Authenticatable
     public function isCustomer(): bool
     {
         return $this->hasRole('customer');
+    }
+
+    public function isInfluencer(): bool
+    {
+        return $this->hasRole('influencer');
     }
 
     public function canAccessAdmin(): bool

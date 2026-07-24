@@ -10,7 +10,7 @@ use Illuminate\Support\Collection;
 class HomeCatalogService
 {
     /** @var array<int, string> */
-    private const EAGER = ['brand', 'defaultVariant', 'images'];
+    private const EAGER = ['brand', 'defaultVariant', 'images', 'variants'];
 
     /**
      * @param  array<string, mixed>  $config

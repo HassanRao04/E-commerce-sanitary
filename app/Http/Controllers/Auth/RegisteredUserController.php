@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Concerns\AuthenticatesStorefrontUsers;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\CustomerProfileService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -46,6 +47,7 @@ class RegisteredUserController extends Controller
         ]);
 
         $user->assignRole('customer');
+        app(CustomerProfileService::class)->ensureForUser($user);
 
         event(new Registered($user));
 

@@ -55,17 +55,19 @@
             <dd data-total-subtotal><x-money :amount="$totals['subtotal']" /></dd>
         </div>
 
-        @if ($totals['discount'] > 0)
-            <div class="order-summary__row order-summary__row--discount">
-                <dt>
-                    Discount
-                    @if (! empty($pricing['coupon_code']))
-                        ({{ $pricing['coupon_code'] }})
-                    @endif
-                </dt>
-                <dd data-total-discount>- <x-money :amount="$totals['discount']" /></dd>
-            </div>
-        @endif
+        <div
+            class="order-summary__row order-summary__row--discount"
+            data-discount-row
+            @if ($totals['discount'] <= 0) hidden @endif
+        >
+            <dt>
+                Discount
+                @if (! empty($pricing['coupon_code']))
+                    ({{ $pricing['coupon_code'] }})
+                @endif
+            </dt>
+            <dd data-total-discount>- <x-money :amount="$totals['discount']" /></dd>
+        </div>
 
         <div class="order-summary__row">
             <dt>Shipping</dt>

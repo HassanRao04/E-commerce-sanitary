@@ -22,6 +22,16 @@ trait AuthenticatesStorefrontUsers
             }
         }
 
+        $user = Auth::user();
+
+        if ($user?->isStaff()) {
+            return redirect()->intended(route('admin.dashboard'));
+        }
+
+        if ($user?->isInfluencer()) {
+            return redirect()->intended(route('influencer.dashboard'));
+        }
+
         return redirect()->intended(route('shop.account.dashboard'));
     }
 

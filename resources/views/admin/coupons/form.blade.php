@@ -66,6 +66,52 @@
             </div>
         </div>
 
+        <div class="border-t border-gray-100 pt-6 space-y-4">
+            <h3 class="text-sm font-semibold text-gray-900">Influencer &amp; commission</h3>
+            <p class="text-xs text-gray-500">Optional. Leave blank for a normal coupon with no influencer.</p>
+
+            <div>
+                <x-input-label for="influencer_id" value="Assign influencer" />
+                <select id="influencer_id" name="influencer_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
+                    <option value="">None</option>
+                    @foreach ($influencers as $influencer)
+                        <option value="{{ $influencer->id }}" @selected((string) old('influencer_id', $coupon->influencer_id) === (string) $influencer->id)>
+                            {{ $influencer->name }} ({{ $influencer->email }})
+                        </option>
+                    @endforeach
+                </select>
+                <x-input-error :messages="$errors->get('influencer_id')" class="mt-2" />
+            </div>
+
+            <label class="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="commission_enabled" value="1" @checked(old('commission_enabled', $coupon->commission_enabled ?? false))>
+                Enable commission
+            </label>
+            <x-input-error :messages="$errors->get('commission_enabled')" class="mt-2" />
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                    <x-input-label for="commission_type" value="Commission type" />
+                    <select id="commission_type" name="commission_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm text-sm">
+                        <option value="">Select…</option>
+                        <option value="{{ \App\Enums\CouponType::Percent->value }}" @selected(old('commission_type', $coupon->commission_type?->value) === \App\Enums\CouponType::Percent->value)>
+                            Commission %
+                        </option>
+                        <option value="{{ \App\Enums\CouponType::Fixed->value }}" @selected(old('commission_type', $coupon->commission_type?->value) === \App\Enums\CouponType::Fixed->value)>
+                            Commission fixed amount
+                        </option>
+                    </select>
+                    <x-input-error :messages="$errors->get('commission_type')" class="mt-2" />
+                </div>
+                <div>
+                    <x-input-label for="commission_value" value="Commission % or fixed amount" />
+                    <x-text-input id="commission_value" name="commission_value" type="number" step="0.01" min="0.01" class="mt-1 block w-full" :value="old('commission_value', $coupon->commission_value)" />
+                    <p class="mt-1 text-xs text-gray-500">Enter percent (e.g. 5) or fixed amount, matching the type above.</p>
+                    <x-input-error :messages="$errors->get('commission_value')" class="mt-2" />
+                </div>
+            </div>
+        </div>
+
         <label class="flex items-center gap-2 text-sm">
             <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $coupon->is_active ?? true))>
             Active

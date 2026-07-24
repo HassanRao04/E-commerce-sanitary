@@ -90,7 +90,7 @@ export default function shopCatalog(config) {
 
             if (this.filters.max_price < this.filters.min_price) {
                 this.filters.max_price = this.filters.min_price;
-            }
+            }x
 
             window.clearTimeout(this.priceDebounce);
             this.priceDebounce = window.setTimeout(() => this.fetchProducts(1), 350);

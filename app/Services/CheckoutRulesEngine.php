@@ -14,6 +14,7 @@ class CheckoutRulesEngine
         private readonly ShippingCalculatorService $shippingCalculator,
         private readonly TaxChargeSettingsService $taxChargeSettings,
         private readonly TaxChargeCalculatorService $taxChargeCalculator,
+        private readonly ProductOfferCalculatorService $productOfferCalculator,
     ) {}
 
     /**
@@ -76,6 +77,7 @@ class CheckoutRulesEngine
             'discount' => $discount,
             'discounted_subtotal' => $discountedSubtotal,
             'shipping' => $shippingResult['shipping'],
+            'shipping_discount' => $shippingResult['shipping_discount'],
             'service_charge' => $chargeResult['service_charge'],
             'handling_charge' => $chargeResult['handling_charge'],
             'tax' => $chargeResult['tax'],
@@ -92,7 +94,8 @@ class CheckoutRulesEngine
                 $shippingResult['qualifies_for_free_shipping'],
             ),
             'shipping_method' => $shippingResult['method'],
-            'coupon_code' => $discount > 0 ? $cart->coupon?->code : null,
+            'coupon_code' => $this->activeCouponCode($cart, $discount),
+            'offer_discount' => $this->productOfferCalculator->cartOfferDiscount($cart),
             'minimum_order_amount' => $minimumOrderAmount,
             'minimum_order_met' => $this->minimumOrderMet($subtotal),
             'coupons_enabled' => $this->checkoutRulesSettings->couponsEnabled(),
@@ -202,15 +205,34 @@ class CheckoutRulesEngine
 
     public function resolveDiscount(Cart $cart, float $subtotal): float
     {
+        $offerDiscount = $this->productOfferCalculator->cartOfferDiscount($cart);
+        $couponDiscount = 0.0;
+
+        if (
+            $this->checkoutRulesSettings->couponsEnabled()
+            && $cart->coupon
+            && $cart->coupon->is_valid
+        ) {
+            $couponDiscount = $cart->coupon->calculateDiscount(max(0, $subtotal - $offerDiscount));
+        }
+
+        return min($subtotal, round($offerDiscount + $couponDiscount, 2));
+    }
+
+    private function activeCouponCode(Cart $cart, float $totalDiscount): ?string
+    {
+        if ($totalDiscount <= 0 || ! $cart->coupon?->is_valid) {
+            return null;
+        }
+
         if (! $this->checkoutRulesSettings->couponsEnabled()) {
-            return 0.0;
+            return null;
         }
 
-        if (! $cart->coupon || ! $cart->coupon->is_valid) {
-            return 0.0;
-        }
+        $offerDiscount = $this->productOfferCalculator->cartOfferDiscount($cart);
+        $couponPortion = max(0, round($totalDiscount - $offerDiscount, 2));
 
-        return $cart->coupon->calculateDiscount($subtotal);
+        return $couponPortion > 0 ? $cart->coupon->code : null;
     }
 
     public function minimumOrderMet(float $subtotal): bool

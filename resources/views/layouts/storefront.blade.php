@@ -18,10 +18,23 @@
         <link rel="icon" href="{{ $siteSettings->favicon_url }}">
     @endif
     <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
-    <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700|inter:400,500,600,700&display=swap" rel="stylesheet" />
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link rel="dns-prefetch" href="https://fonts.bunny.net">
+    <link
+        href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700|inter:400,500,600,700&display=swap"
+        rel="stylesheet"
+        media="print"
+        onload="this.media='all'"
+    />
+    <noscript>
+        <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700|inter:400,500,600,700&display=swap" rel="stylesheet" />
+    </noscript>
+    @vite(['resources/css/storefront.css', 'resources/js/storefront.js'])
+    @stack('head')
 </head>
-<body class="ds-root font-sans flex flex-col min-h-screen overflow-x-clip">
+<body @class([
+    'ds-root font-sans flex flex-col min-h-screen overflow-x-clip',
+    'storefront-page--hero-overlay' => request()->routeIs('shop.home'),
+])>
     <x-storefront.header
         :cart-item-count="$cartItemCount"
         :wishlist-item-count="$wishlistItemCount"
@@ -46,7 +59,7 @@
         @yield('content')
     </main>
 
-    @include('storefront.partials.footer')
+    <x-storefront.footer :categories="$headerNavCategories ?? collect()" />
 
     <x-storefront.quick-view-modal />
 </body>

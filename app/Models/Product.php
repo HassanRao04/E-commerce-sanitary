@@ -41,6 +41,9 @@ class Product extends Model
         'is_new_arrival',
         'is_best_seller',
         'is_project_suitable',
+        'offers_enabled',
+        'pipe_length_enabled',
+        'option_title',
         'default_variant_id',
         'meta_title',
         'meta_description',
@@ -55,6 +58,8 @@ class Product extends Model
             'is_new_arrival' => 'boolean',
             'is_best_seller' => 'boolean',
             'is_project_suitable' => 'boolean',
+            'offers_enabled' => 'boolean',
+            'pipe_length_enabled' => 'boolean',
         ];
     }
 
@@ -226,6 +231,26 @@ class Product extends Model
     public function attributeValues(): HasMany
     {
         return $this->hasMany(ProductAttributeValue::class);
+    }
+
+    public function offers(): HasMany
+    {
+        return $this->hasMany(ProductOffer::class)->orderBy('sort_order')->orderBy('buy_quantity');
+    }
+
+    public function pipeLengthOptions(): HasMany
+    {
+        return $this->hasMany(ProductPipeLengthOption::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    /**
+     * Configurable priced-option label shown on storefront (e.g. Size, Hose Length).
+     */
+    public function resolvedOptionTitle(): string
+    {
+        $title = trim((string) $this->option_title);
+
+        return $title !== '' ? $title : 'Options';
     }
 
     public function relatedProducts(): BelongsToMany

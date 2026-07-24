@@ -68,6 +68,101 @@ class CouponManagementTest extends TestCase
         $this->assertSoftDeleted('coupons', ['code' => 'DELETEME']);
     }
 
+    public function test_admin_can_create_influencer_coupon(): void
+    {
+        $influencer = User::factory()->create([
+            'name' => 'Muhammad Hassan',
+            'email' => 'hassan.influencer@example.com',
+        ]);
+        $influencer->assignRole('influencer');
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.coupons.store'), [
+                'code' => 'HASSAN10',
+                'type' => CouponType::Percent->value,
+                'value' => 10,
+                'is_active' => 1,
+                'influencer_id' => $influencer->id,
+                'commission_enabled' => 1,
+                'commission_type' => CouponType::Percent->value,
+                'commission_value' => 5,
+            ])
+            ->assertRedirect(route('admin.coupons.index'));
+
+        $this->assertDatabaseHas('coupons', [
+            'code' => 'HASSAN10',
+            'influencer_id' => $influencer->id,
+            'commission_enabled' => 1,
+            'commission_type' => CouponType::Percent->value,
+            'commission_value' => 5,
+        ]);
+    }
+
+    public function test_admin_can_create_fixed_commission_coupon(): void
+    {
+        $influencer = User::factory()->create([
+            'name' => 'Fixed Influencer',
+            'email' => 'fixed.influencer@example.com',
+        ]);
+        $influencer->assignRole('influencer');
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.coupons.store'), [
+                'code' => 'FIXEDCOMM',
+                'type' => CouponType::Fixed->value,
+                'value' => 500,
+                'is_active' => 1,
+                'influencer_id' => $influencer->id,
+                'commission_enabled' => 1,
+                'commission_type' => CouponType::Fixed->value,
+                'commission_value' => 100,
+            ])
+            ->assertRedirect(route('admin.coupons.index'));
+
+        $this->assertDatabaseHas('coupons', [
+            'code' => 'FIXEDCOMM',
+            'commission_enabled' => 1,
+            'commission_type' => CouponType::Fixed->value,
+            'commission_value' => 100,
+        ]);
+    }
+
+    public function test_existing_coupon_works_without_influencer(): void
+    {
+        $this->assertDatabaseHas('coupons', [
+            'code' => 'WELCOME10',
+            'influencer_id' => null,
+            'commission_enabled' => 0,
+        ]);
+    }
+
+    public function test_coupon_form_lists_influencer_role_users(): void
+    {
+        $influencer = User::factory()->create([
+            'first_name' => 'Dropdown',
+            'last_name' => 'Influencer',
+            'name' => 'Dropdown Influencer',
+            'email' => 'dropdown.influencer@example.com',
+        ]);
+        $influencer->assignRole('influencer');
+
+        $staff = User::factory()->create([
+            'first_name' => 'Not',
+            'last_name' => 'Influencer',
+            'name' => 'Not Influencer',
+            'email' => 'not.influencer.staff@example.com',
+        ]);
+        $staff->assignRole('sales-staff');
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.coupons.create'))
+            ->assertOk()
+            ->assertSee('Assign influencer')
+            ->assertSee('dropdown.influencer@example.com')
+            ->assertSee('Dropdown Influencer')
+            ->assertDontSee('not.influencer.staff@example.com');
+    }
+
     public function test_coupon_form_is_available(): void
     {
         $this->actingAs($this->admin)

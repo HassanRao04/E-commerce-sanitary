@@ -7,8 +7,11 @@
 ])
 
 @php
+    $overlayHero = request()->routeIs('shop.home');
+
     $headerConfig = [
         'cart' => $headerCartPreview,
+        'overlay' => $overlayHero,
         'routes' => [
             'cartPreview' => route('shop.cart.preview'),
             'cartUpdate' => url('/cart/items'),
@@ -21,20 +24,20 @@
 @endphp
 
 <header
-    class="sticky top-0 z-50 relative"
+    @class([
+        'storefront-header z-50',
+        'storefront-header--overlay' => $overlayHero,
+        'sticky top-0' => ! $overlayHero,
+    ])
     x-data="storefrontHeader(@js($headerConfig))"
+    :class="{ 'is-scrolled': scrolled }"
     @keydown.escape.window="closeAll()"
     @click.outside="accountOpen = false; megaOpen = false"
 >
     @include('storefront.partials.header.announcement')
 
-    <div
-        class="storefront-header-bar transition-shadow duration-300 ease-ds-out"
-        :class="scrolled ? 'is-scrolled' : ''"
-    >
+    <div class="storefront-header-bar">
         @include('storefront.partials.header.main-bar')
-
-        @include('storefront.partials.header.nav-desktop')
     </div>
 
     @include('storefront.partials.header.mega-menu')

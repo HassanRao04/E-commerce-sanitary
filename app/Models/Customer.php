@@ -54,7 +54,43 @@ class Customer extends Model
     protected function formattedLifetimeSpend(): Attribute
     {
         return Attribute::make(
-            get: fn (): string => $this->formatMoneyAttribute($this->lifetime_spend),
+            get: function (): string {
+                $amount = array_key_exists('orders_sum_grand_total', $this->attributes)
+                    ? (float) ($this->attributes['orders_sum_grand_total'] ?? 0)
+                    : (float) $this->orders()->sum('grand_total');
+
+                return $this->formatMoneyAttribute($amount);
+            },
+        );
+    }
+
+    protected function calculatedLifetimeSpend(): Attribute
+    {
+        return Attribute::make(
+            get: function (): float {
+                if (array_key_exists('orders_sum_grand_total', $this->attributes)) {
+                    return (float) ($this->attributes['orders_sum_grand_total'] ?? 0);
+                }
+
+                return (float) $this->orders()->sum('grand_total');
+            },
+        );
+    }
+
+    protected function lastOrderAt(): Attribute
+    {
+        return Attribute::make(
+            get: function (): ?\Illuminate\Support\Carbon {
+                if (array_key_exists('orders_max_created_at', $this->attributes)) {
+                    $value = $this->attributes['orders_max_created_at'] ?? null;
+
+                    return $value ? \Illuminate\Support\Carbon::parse($value) : null;
+                }
+
+                $latest = $this->orders()->latest('created_at')->value('created_at');
+
+                return $latest ? \Illuminate\Support\Carbon::parse($latest) : null;
+            },
         );
     }
 
