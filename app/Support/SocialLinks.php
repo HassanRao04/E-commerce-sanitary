@@ -88,9 +88,38 @@ class SocialLinks
     public static function whatsappDigits(?SiteSetting $settings = null): ?string
     {
         $settings ??= SiteSetting::current();
-        $digits = preg_replace('/\D+/', '', (string) ($settings->whatsapp ?? ''));
+
+        return self::phoneDigits($settings->whatsapp);
+    }
+
+    public static function phoneDigits(?string $phone): ?string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $phone);
 
         return filled($digits) ? $digits : null;
+    }
+
+    public static function normalizePhoneForWhatsapp(
+        ?string $phone,
+        ?string $defaultCountryCode = null,
+    ): ?string {
+        $digits = self::phoneDigits($phone);
+
+        if ($digits === null) {
+            return null;
+        }
+
+        $countryCode = $defaultCountryCode ?? (string) config('services.whatsapp.default_country_code', '92');
+
+        if (str_starts_with($digits, '0')) {
+            return $countryCode.substr($digits, 1);
+        }
+
+        if (strlen($digits) === 10 && str_starts_with($digits, '3')) {
+            return $countryCode.$digits;
+        }
+
+        return $digits;
     }
 
     public static function whatsappUrl(?string $text = null, ?SiteSetting $settings = null): ?string

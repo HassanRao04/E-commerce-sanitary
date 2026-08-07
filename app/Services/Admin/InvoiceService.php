@@ -11,6 +11,7 @@ use App\Repositories\Contracts\InvoiceRepositoryInterface;
 use App\Services\ActivityLogService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class InvoiceService
@@ -18,6 +19,7 @@ class InvoiceService
     public function __construct(
         private readonly InvoiceRepositoryInterface $invoices,
         private readonly ActivityLogService $activityLog,
+        private readonly InvoicePdfService $invoicePdf,
     ) {}
 
     public function paginatedList(array $filters = [], int $perPage = 15): LengthAwarePaginator
@@ -118,6 +120,23 @@ class InvoiceService
 
             return $invoice->fresh();
         });
+    }
+
+    public function ensurePdf(Invoice $invoice): Invoice
+    {
+        $invoice->loadMissing(['items', 'order']);
+
+        if (filled($invoice->pdf_path) && Storage::disk('local')->exists($invoice->pdf_path)) {
+            return $invoice;
+        }
+
+        $path = $this->invoicePdf->store($invoice);
+
+        if ($invoice->pdf_path !== $path) {
+            $invoice->update(['pdf_path' => $path]);
+        }
+
+        return $invoice->fresh();
     }
 
     private function nextInvoiceNumber(): string

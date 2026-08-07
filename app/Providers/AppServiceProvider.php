@@ -8,6 +8,7 @@ use App\Models\Brand;
 use App\Models\Category;
 use App\Models\CheckoutRulesSetting;
 use App\Models\Coupon;
+use App\Models\CourierProvider;
 use App\Models\Customer;
 use App\Models\Inquiry;
 use App\Models\Inventory;
@@ -27,6 +28,7 @@ use App\Policies\BrandPolicy;
 use App\Policies\CategoryPolicy;
 use App\Policies\CheckoutRulesSettingPolicy;
 use App\Policies\CouponPolicy;
+use App\Policies\CourierProviderPolicy;
 use App\Policies\CustomerPolicy;
 use App\Policies\InquiryPolicy;
 use App\Policies\InventoryPolicy;
@@ -62,9 +64,12 @@ use App\Services\CartService;
 use App\Services\CheckoutRulesEngine;
 use App\Services\Storefront\StorefrontContentService;
 use App\Services\WishlistService;
+use App\Events\OrderPlaced;
 use App\Listeners\LogUserLogin;
 use App\Listeners\LogUserLogout;
 use App\Listeners\LogUserPasswordReset;
+use App\Listeners\SendOrderConfirmationEmail;
+use App\Listeners\SendOrderWhatsAppNotification;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Events\PasswordReset;
@@ -101,6 +106,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Invoice::class, InvoicePolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
         Gate::policy(Coupon::class, CouponPolicy::class);
+        Gate::policy(CourierProvider::class, CourierProviderPolicy::class);
         Gate::policy(CheckoutRulesSetting::class, CheckoutRulesSettingPolicy::class);
         Gate::policy(Review::class, ReviewPolicy::class);
         Gate::policy(Inquiry::class, InquiryPolicy::class);
@@ -121,6 +127,8 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(Login::class, LogUserLogin::class);
         Event::listen(Logout::class, LogUserLogout::class);
         Event::listen(PasswordReset::class, LogUserPasswordReset::class);
+        Event::listen(OrderPlaced::class, SendOrderConfirmationEmail::class);
+        Event::listen(OrderPlaced::class, SendOrderWhatsAppNotification::class);
 
         View::composer(['layouts.storefront', 'components.storefront.*'], function ($view): void {
             $content = app(StorefrontContentService::class);

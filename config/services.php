@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    'whatsapp' => [
+        'token' => env('WHATSAPP_TOKEN'),
+        'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
+        'api_version' => env('WHATSAPP_API_VERSION', 'v21.0'),
+        'default_country_code' => env('WHATSAPP_DEFAULT_COUNTRY_CODE', '92'),
+        'message_mode' => env('WHATSAPP_MESSAGE_MODE', 'template'),
+        'order_template' => env('WHATSAPP_ORDER_TEMPLATE', 'hello_world'),
+        'order_template_language' => env('WHATSAPP_ORDER_TEMPLATE_LANGUAGE', 'en_US'),
+    ],
+
 ];

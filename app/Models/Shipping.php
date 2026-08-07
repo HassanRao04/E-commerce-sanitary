@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ShipmentBookingStatus;
 use App\Enums\ShipmentStatus;
 use App\Models\Concerns\NormalizesStrings;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -20,19 +21,29 @@ class Shipping extends Model
 
     protected $fillable = [
         'order_id',
+        'courier_provider_id',
         'courier_name',
+        'external_shipment_id',
         'tracking_number',
+        'awb_number',
+        'label_path',
         'status',
+        'booking_status',
         'shipped_at',
         'delivered_at',
+        'booked_at',
+        'booking_meta',
     ];
 
     protected function casts(): array
     {
         return [
             'status' => ShipmentStatus::class,
+            'booking_status' => ShipmentBookingStatus::class,
             'shipped_at' => 'datetime',
             'delivered_at' => 'datetime',
+            'booked_at' => 'datetime',
+            'booking_meta' => 'array',
         ];
     }
 
@@ -58,7 +69,18 @@ class Shipping extends Model
     {
         return Attribute::make(
             get: function (): ?string {
-                if (blank($this->tracking_number) || blank($this->courier_name)) {
+                if (blank($this->tracking_number)) {
+                    return null;
+                }
+
+                if ($this->relationLoaded('courierProvider') || filled($this->courier_provider_id)) {
+                    $providerUrl = $this->courierProvider?->trackingUrlFor($this->tracking_number);
+                    if (filled($providerUrl)) {
+                        return $providerUrl;
+                    }
+                }
+
+                if (blank($this->courier_name)) {
                     return null;
                 }
 
@@ -86,6 +108,20 @@ class Shipping extends Model
     {
         return Attribute::make(
             set: fn (?string $value): ?string => static::normalizeUpper($value),
+        );
+    }
+
+    protected function awbNumber(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value): ?string => static::normalizeUpper($value),
+        );
+    }
+
+    protected function externalShipmentId(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value): ?string => static::normalizeTrim($value),
         );
     }
 
@@ -134,6 +170,11 @@ class Shipping extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    public function courierProvider(): BelongsTo
+    {
+        return $this->belongsTo(CourierProvider::class);
     }
 
     public function trackingEvents(): HasMany

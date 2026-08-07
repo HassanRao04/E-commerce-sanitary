@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CancelOrderRequest;
 use App\Http\Requests\Admin\UpdateOrderPaymentStatusRequest;
 use App\Http\Requests\Admin\UpdateOrderStatusRequest;
+use App\Models\CourierProvider;
 use App\Models\Order;
 use App\Services\Admin\InvoiceService;
 use App\Services\Admin\OrderService;
@@ -36,7 +37,14 @@ class OrderController extends Controller
 
         $order = $this->orderService->findWithRelations($order->id);
 
-        return view('admin.orders.show', compact('order'));
+        return view('admin.orders.show', [
+            'order' => $order,
+            'bookableCourierProviders' => CourierProvider::query()
+                ->where('slug', '!=', 'manual')
+                ->active()
+                ->ordered()
+                ->get(),
+        ]);
     }
 
     public function updateStatus(UpdateOrderStatusRequest $request, Order $order): RedirectResponse

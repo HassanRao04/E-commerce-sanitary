@@ -3,19 +3,27 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\BookShipmentRequest;
 use App\Http\Requests\Admin\StoreShippingRequest;
 use App\Http\Requests\Admin\StoreTrackingEventRequest;
 use App\Http\Requests\Admin\UpdateShippingRequest;
 use App\Models\Order;
 use App\Models\Shipping;
+use App\Services\Admin\ShippingLabelService;
 use App\Services\Admin\ShippingService;
+use App\Services\Couriers\ShipmentBookingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ShippingController extends Controller
 {
-    public function __construct(private readonly ShippingService $shippingService) {}
+    public function __construct(
+        private readonly ShippingService $shippingService,
+        private readonly ShipmentBookingService $shipmentBooking,
+        private readonly ShippingLabelService $shippingLabels,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -44,6 +52,54 @@ class ShippingController extends Controller
         return back()->with('success', 'Shipment created.');
     }
 
+    public function book(BookShipmentRequest $request, Order $order): RedirectResponse
+    {
+        $this->authorize('create', Shipping::class);
+
+        $provider = $request->courierProvider();
+
+        try {
+            $shipment = $this->shipmentBooking->bookForOrder($order, $provider);
+        } catch (\RuntimeException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        $simulated = (bool) ($shipment->booking_meta['simulated'] ?? false);
+        $message = $simulated
+            ? 'Shipment booked (simulated). Tracking: '.$shipment->tracking_number
+            : 'Shipment booked with '.$provider->name.'. CN: '.$shipment->tracking_number;
+
+        return back()->with('success', $message);
+    }
+
+    public function syncTracking(Shipping $shipping): RedirectResponse
+    {
+        $this->authorize('update', $shipping);
+
+        $result = $this->shipmentBooking->syncTracking($shipping);
+
+        if (! $result->success) {
+            return back()->with('error', $result->message ?? 'Unable to sync tracking.');
+        }
+
+        return back()->with('success', $result->message ?? 'Tracking synced.');
+    }
+
+    public function downloadCourierLabel(Shipping $shipping): BinaryFileResponse|RedirectResponse
+    {
+        $this->authorize('view', $shipping);
+
+        try {
+            $absolutePath = $this->shipmentBooking->downloadCourierLabel($shipping);
+        } catch (\RuntimeException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        return response()->download($absolutePath, basename($absolutePath), [
+            'Content-Type' => 'application/pdf',
+        ]);
+    }
+
     public function update(UpdateShippingRequest $request, Shipping $shipping): RedirectResponse
     {
         $this->authorize('update', $shipping);
@@ -62,7 +118,7 @@ class ShippingController extends Controller
         return back()->with('success', 'Tracking event added.');
     }
 
-    public function printLabel(Shipping $shipping): View
+    public function printLabel(Request $request, Shipping $shipping): View
     {
         $this->authorize('view', $shipping);
 
@@ -70,8 +126,15 @@ class ShippingController extends Controller
             'order.items',
             'order.shippingAddress',
             'order.billingAddress',
+            'courierProvider',
         ]);
 
-        return view('admin.shipping.label', ['shipment' => $shipping]);
+        $format = $this->shippingLabels->normalizeFormat($request->query('format'));
+
+        return view('admin.shipping.label', [
+            'shipment' => $shipping,
+            'label' => $this->shippingLabels->prepare($shipping, $format),
+            'format' => $format,
+        ]);
     }
 }

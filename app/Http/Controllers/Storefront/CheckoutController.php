@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Storefront;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Storefront\CheckoutRequest;
 use App\Models\Order;
+use App\Events\OrderPlaced;
 use App\Services\CartService;
 use App\Services\CheckoutPricingService;
 use App\Services\CheckoutService;
@@ -49,6 +50,8 @@ class CheckoutController extends Controller
     {
         $cart = $this->cartService->resolve();
         $order = $this->checkoutService->placeOrder($cart, $request->validated());
+
+        event(new OrderPlaced($order));
 
         $redirectUrl = session()->pull('shop.payment_redirect');
 

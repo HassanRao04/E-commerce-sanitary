@@ -2,7 +2,9 @@
 
 namespace App\Services\Admin;
 
+use App\Enums\ShipmentBookingStatus;
 use App\Enums\ShipmentStatus;
+use App\Enums\TrackingEventSource;
 use App\Models\Order;
 use App\Models\Shipping;
 use App\Models\Tracking;
@@ -35,9 +37,11 @@ class ShippingService
 
             $shipment = Shipping::create([
                 'order_id' => $order->id,
+                'courier_provider_id' => $data['courier_provider_id'] ?? null,
                 'courier_name' => $data['courier_name'],
                 'tracking_number' => $data['tracking_number'] ?? null,
                 'status' => $status,
+                'booking_status' => ShipmentBookingStatus::Manual,
                 'shipped_at' => in_array($status, [
                     ShipmentStatus::InTransit,
                     ShipmentStatus::OutForDelivery,
@@ -100,7 +104,7 @@ class ShippingService
                 'location' => $data['location'] ?? null,
                 'description' => $data['description'] ?? null,
                 'event_at' => $data['event_at'],
-                'source' => 'manual',
+                'source' => TrackingEventSource::Manual,
             ]);
 
             $this->activityLog->log('shipping.tracking_event', $event);

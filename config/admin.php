@@ -142,6 +142,13 @@ return [
                     'active' => 'admin.shipping.index',
                 ],
                 [
+                    'label' => 'Courier Providers',
+                    'route' => 'admin.courier-providers.index',
+                    'permission' => 'shipping.view',
+                    'icon' => 'truck',
+                    'active' => 'admin.courier-providers.*',
+                ],
+                [
                     'label' => 'Shipping Settings',
                     'route' => 'admin.shipping.settings.edit',
                     'permission' => 'shipping.view',

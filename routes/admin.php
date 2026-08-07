@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\BrandController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CheckoutRulesController;
 use App\Http\Controllers\Admin\CouponController;
+use App\Http\Controllers\Admin\CourierProviderController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\HomepageController;
@@ -205,6 +206,7 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
     });
 
     Route::middleware('can:shipping.view')->group(function (): void {
+        Route::resource('courier-providers', CourierProviderController::class)->except(['show']);
         Route::get('shipping/settings', [ShippingSettingsController::class, 'edit'])->name('shipping.settings.edit');
         Route::get('shipping/settings/products/search', [ShippingSettingsController::class, 'searchProducts'])
             ->name('shipping.settings.products.search');
@@ -213,18 +215,27 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
         Route::get('shipping/{shipping}/label', [ShippingController::class, 'printLabel'])
             ->middleware('can:shipping.view')
             ->name('shipping.label');
+        Route::get('shipping/{shipping}/courier-label', [ShippingController::class, 'downloadCourierLabel'])
+            ->middleware('can:shipping.view')
+            ->name('shipping.courier-label');
         Route::patch('shipping/settings', [ShippingSettingsController::class, 'update'])
             ->middleware('can:shipping.manage')
             ->name('shipping.settings.update');
         Route::post('orders/{order}/shipping', [ShippingController::class, 'store'])
             ->middleware('can:shipping.manage')
             ->name('orders.shipping.store');
+        Route::post('orders/{order}/book-shipment', [ShippingController::class, 'book'])
+            ->middleware('can:shipping.manage')
+            ->name('orders.shipping.book');
         Route::patch('shipping/{shipping}', [ShippingController::class, 'update'])
             ->middleware('can:shipping.manage')
             ->name('shipping.update');
         Route::post('shipping/{shipping}/events', [ShippingController::class, 'storeEvent'])
             ->middleware('can:shipping.manage')
             ->name('shipping.events.store');
+        Route::post('shipping/{shipping}/sync-tracking', [ShippingController::class, 'syncTracking'])
+            ->middleware('can:shipping.manage')
+            ->name('shipping.sync-tracking');
     });
 
     // ── Engagement ───────────────────────────────────────────────────────

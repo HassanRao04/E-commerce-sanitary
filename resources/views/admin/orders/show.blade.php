@@ -70,21 +70,56 @@
                                 <a href="{{ route('admin.shipping.show', $shipment) }}" class="text-slate-700 hover:underline">Manage</a>
                             </div>
                         </div>
-                        <div class="text-gray-600 mt-1">Tracking: {{ $shipment->tracking_number ?? '—' }} · {{ $shipment->status?->value }}</div>
+                        <div class="text-gray-600 mt-1">
+                            Tracking: {{ $shipment->tracking_number ?? '—' }}
+                            @if ($shipment->awb_number)
+                                · AWB: {{ $shipment->awb_number }}
+                            @endif
+                            · {{ $shipment->status?->value }}
+                            @if ($shipment->booking_status)
+                                · Booking: {{ str_replace('_', ' ', $shipment->booking_status->value) }}
+                            @endif
+                        </div>
                     </div>
                 @empty
                     @can('create', App\Models\Shipping::class)
-                        <form method="POST" action="{{ route('admin.orders.shipping.store', $order) }}" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            @csrf
-                            <input type="text" name="courier_name" placeholder="Courier" required class="rounded-md border-gray-300 shadow-sm">
-                            <input type="text" name="tracking_number" placeholder="Tracking #" class="rounded-md border-gray-300 shadow-sm">
-                            <select name="status" required class="rounded-md border-gray-300 shadow-sm">
-                                @foreach (\App\Enums\ShipmentStatus::cases() as $status)
-                                    <option value="{{ $status->value }}">{{ str_replace('_', ' ', ucfirst($status->value)) }}</option>
-                                @endforeach
-                            </select>
-                            <button type="submit" class="md:col-span-3 px-4 py-2 bg-slate-900 text-white rounded-md text-sm">Create Shipment</button>
-                        </form>
+                        @if ($bookableCourierProviders->isNotEmpty())
+                            <div class="border rounded-md p-4 mb-4">
+                                <h3 class="font-medium mb-2">Book Shipment</h3>
+                                <p class="text-sm text-gray-500 mb-3">Simulates courier booking and stores shipment details. No external API is called yet.</p>
+                                <form method="POST" action="{{ route('admin.orders.shipping.book', $order) }}" class="flex flex-col sm:flex-row gap-3">
+                                    @csrf
+                                    <select name="courier_provider_id" required class="flex-1 rounded-md border-gray-300 shadow-sm">
+                                        <option value="">Select courier</option>
+                                        @foreach ($bookableCourierProviders as $provider)
+                                            <option value="{{ $provider->id }}" @selected(old('courier_provider_id') == $provider->id)>
+                                                {{ $provider->name }} ({{ $provider->mode_label }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-md text-sm whitespace-nowrap">Book Shipment</button>
+                                </form>
+                                @error('courier_provider_id')
+                                    <p class="text-red-600 text-sm mt-2">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        @endif
+
+                        <div class="border rounded-md p-4">
+                            <h3 class="font-medium mb-2">Create Shipment Manually</h3>
+                            <p class="text-sm text-gray-500 mb-3">Enter courier and tracking details yourself.</p>
+                            <form method="POST" action="{{ route('admin.orders.shipping.store', $order) }}" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                @csrf
+                                <input type="text" name="courier_name" placeholder="Courier" required class="rounded-md border-gray-300 shadow-sm">
+                                <input type="text" name="tracking_number" placeholder="Tracking #" class="rounded-md border-gray-300 shadow-sm">
+                                <select name="status" required class="rounded-md border-gray-300 shadow-sm">
+                                    @foreach (\App\Enums\ShipmentStatus::cases() as $status)
+                                        <option value="{{ $status->value }}">{{ str_replace('_', ' ', ucfirst($status->value)) }}</option>
+                                    @endforeach
+                                </select>
+                                <button type="submit" class="md:col-span-3 px-4 py-2 border border-gray-300 rounded-md text-sm hover:bg-gray-50">Create Shipment</button>
+                            </form>
+                        </div>
                     @else
                         <p class="text-gray-500 text-sm">No shipments yet.</p>
                     @endcan

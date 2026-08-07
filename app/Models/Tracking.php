@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TrackingEventSource;
 use App\Models\Concerns\NormalizesStrings;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -28,13 +29,14 @@ class Tracking extends Model
     {
         return [
             'event_at' => 'datetime',
+            'source' => TrackingEventSource::class,
         ];
     }
 
     protected function isManual(): Attribute
     {
         return Attribute::make(
-            get: fn (): bool => $this->source === 'manual',
+            get: fn (): bool => $this->source === TrackingEventSource::Manual,
         );
     }
 
@@ -74,9 +76,9 @@ class Tracking extends Model
     }
 
     #[Scope]
-    protected function fromSource(Builder $query, string $source): void
+    protected function fromSource(Builder $query, TrackingEventSource|string $source): void
     {
-        $query->where('source', $source);
+        $query->where('source', $source instanceof TrackingEventSource ? $source->value : $source);
     }
 
     #[Scope]

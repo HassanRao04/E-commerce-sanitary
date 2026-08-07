@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             BestSellerProductSeeder::class,
             ProductVariationSeeder::class,
             ShippingSettingsSeeder::class,
+            CourierProviderSeeder::class,
             TaxChargeSettingsSeeder::class,
             CheckoutRulesSettingsSeeder::class,
             ReviewSettingsSeeder::class,

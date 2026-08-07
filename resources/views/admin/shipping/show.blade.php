@@ -14,7 +14,12 @@
                     <div><dt class="text-gray-500">Courier</dt><dd>{{ $shipment->courier_name }}</dd></div>
                     <div><dt class="text-gray-500">Tracking</dt><dd>{{ $shipment->tracking_number ?? '—' }}</dd></div>
                 </dl>
-                <a href="{{ route('admin.shipping.label', $shipment) }}" target="_blank" class="inline-flex px-4 py-2 border rounded-md text-sm hover:bg-gray-50">Print Shipping Label</a>
+                <div class="flex flex-wrap gap-2">
+                    <a href="{{ route('admin.shipping.label', $shipment) }}" target="_blank" class="inline-flex px-4 py-2 border rounded-md text-sm hover:bg-gray-50">Print Shipping Label</a>
+                    @if ($shipment->courierProvider?->slug === 'tcs' && $shipment->tracking_number)
+                        <a href="{{ route('admin.shipping.courier-label', $shipment) }}" class="inline-flex px-4 py-2 border rounded-md text-sm hover:bg-gray-50">Download Courier Label</a>
+                    @endif
+                </div>
             </div>
 
             <div class="bg-white rounded-lg shadow p-6">
@@ -35,6 +40,15 @@
 
         @can('update', $shipment)
             <div class="space-y-6">
+                @if ($shipment->courierProvider?->slug === 'tcs' && $shipment->tracking_number)
+                    <div class="bg-white rounded-lg shadow p-6">
+                        <h2 class="text-lg font-medium mb-3">Courier API</h2>
+                        <form method="POST" action="{{ route('admin.shipping.sync-tracking', $shipment) }}">
+                            @csrf
+                            <x-primary-button class="w-full justify-center">Sync Tracking from TCS</x-primary-button>
+                        </form>
+                    </div>
+                @endif
                 <div class="bg-white rounded-lg shadow p-6">
                     <h2 class="text-lg font-medium mb-3">Update Shipment</h2>
                     <form method="POST" action="{{ route('admin.shipping.update', $shipment) }}" class="space-y-3">
