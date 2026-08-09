@@ -8,6 +8,14 @@ use App\DataTransferObjects\PaymentVerificationDTO;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 
+/**
+ * Webhook signature verification is NOT implemented. PayFast ITN validation
+ * requires the parameter signature built from `payments.payfast.passphrase`
+ * plus a server-to-server validate callback, neither of which is derivable from
+ * this codebase. verifySignature() therefore inherits the fail-closed default,
+ * so every webhook is rejected. Implement both and enable
+ * PAYMENT_PAYFAST_ENABLED together.
+ */
 class PayFastGateway extends BasePaymentGateway
 {
     public function method(): PaymentMethod

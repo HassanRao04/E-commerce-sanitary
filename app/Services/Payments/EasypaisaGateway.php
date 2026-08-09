@@ -8,6 +8,13 @@ use App\DataTransferObjects\PaymentVerificationDTO;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 
+/**
+ * Webhook signature verification is NOT implemented. Easypaisa hashes callbacks
+ * with `payments.easypaisa.hash_key`, but the exact parameter ordering is
+ * merchant-specific and is not derivable from this codebase. verifySignature()
+ * therefore inherits the fail-closed default, so every webhook is rejected.
+ * Implement the hash and enable PAYMENT_EASYPAISA_ENABLED together.
+ */
 class EasypaisaGateway extends BasePaymentGateway
 {
     public function method(): PaymentMethod

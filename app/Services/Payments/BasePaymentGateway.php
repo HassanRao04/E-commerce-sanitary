@@ -29,6 +29,15 @@ abstract class BasePaymentGateway implements PaymentGatewayInterface
         );
     }
 
+    /**
+     * Fail closed: a gateway that has not implemented its provider's signing
+     * scheme can never authenticate a webhook, so it must reject every one.
+     */
+    public function verifySignature(PaymentWebhookDTO $webhook): bool
+    {
+        return false;
+    }
+
     public function handleWebhook(PaymentWebhookDTO $webhook): PaymentVerificationDTO
     {
         return new PaymentVerificationDTO(

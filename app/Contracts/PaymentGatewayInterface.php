@@ -18,6 +18,15 @@ interface PaymentGatewayInterface
 
     public function verify(string $reference, array $payload = []): PaymentVerificationDTO;
 
+    /**
+     * Authenticate an inbound webhook against the provider's signing scheme.
+     *
+     * Implementations must verify against $webhook->rawBody, never the parsed
+     * payload, and must return false whenever the signature, secret or scheme
+     * is missing. Callers treat false as a hard rejection.
+     */
+    public function verifySignature(PaymentWebhookDTO $webhook): bool;
+
     public function handleWebhook(PaymentWebhookDTO $webhook): PaymentVerificationDTO;
 
     public function refund(RefundDTO $refund): PaymentVerificationDTO;

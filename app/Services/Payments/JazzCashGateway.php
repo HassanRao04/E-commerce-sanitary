@@ -8,6 +8,14 @@ use App\DataTransferObjects\PaymentVerificationDTO;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 
+/**
+ * Webhook signature verification is NOT implemented. JazzCash signs callbacks
+ * with `pp_SecureHash` derived from `payments.jazzcash.integrity_salt`, but the
+ * exact field ordering is contract-specific and is not derivable from this
+ * codebase. verifySignature() therefore inherits the fail-closed default, so
+ * every webhook is rejected. Implement the merchant-specific hash and enable
+ * PAYMENT_JAZZCASH_ENABLED together, never separately.
+ */
 class JazzCashGateway extends BasePaymentGateway
 {
     public function method(): PaymentMethod

@@ -52,18 +52,26 @@ class PaymentService
         });
     }
 
-    public function applyVerification(Order $order, PaymentVerificationDTO $result): Payment
+    /**
+     * Apply a verified gateway result to an order.
+     *
+     * $gateway scopes the payment lookup so a webhook from one provider can
+     * never settle a payment taken through another (e.g. Stripe marking a COD
+     * payment paid). Callers must authenticate the webhook before calling this.
+     */
+    public function applyVerification(Order $order, PaymentVerificationDTO $result, PaymentMethod $gateway): Payment
     {
-        return DB::transaction(function () use ($order, $result) {
+        return DB::transaction(function () use ($order, $result, $gateway) {
             $payment = Payment::query()
                 ->where('order_id', $order->id)
+                ->forGateway($gateway)
                 ->latest('id')
                 ->first();
 
             if (! $payment) {
                 $payment = Payment::create([
                     'order_id' => $order->id,
-                    'gateway' => $order->payment_method,
+                    'gateway' => $gateway,
                     'gateway_reference' => $result->gatewayReference ?? $order->order_number,
                     'amount' => $order->grand_total,
                     'currency' => config('shop.currency', 'PKR'),
