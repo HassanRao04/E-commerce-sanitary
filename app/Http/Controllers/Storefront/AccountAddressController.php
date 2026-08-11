@@ -15,7 +15,7 @@ class AccountAddressController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->isStaff()) {
+        if ($user->canAccessAdmin()) {
             return redirect()->route('admin.dashboard');
         }
 
@@ -28,7 +28,7 @@ class AccountAddressController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->isStaff()) {
+        if ($user->canAccessAdmin()) {
             return redirect()->route('admin.dashboard');
         }
 

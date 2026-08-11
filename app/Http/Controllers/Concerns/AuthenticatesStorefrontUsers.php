@@ -24,7 +24,7 @@ trait AuthenticatesStorefrontUsers
 
         $user = Auth::user();
 
-        if ($user?->isStaff()) {
+        if ($user?->canAccessAdmin()) {
             return redirect()->intended(route('admin.dashboard'));
         }
 

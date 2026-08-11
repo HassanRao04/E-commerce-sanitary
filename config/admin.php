@@ -213,6 +213,13 @@ return [
                     'active' => 'admin.activity.*',
                 ],
                 [
+                    'label' => 'Deleted Records',
+                    'route' => 'admin.deleted-records.index',
+                    'permission' => 'records.view',
+                    'icon' => 'archive-box',
+                    'active' => 'admin.deleted-records.*',
+                ],
+                [
                     'label' => 'Settings',
                     'route' => 'admin.settings.index',
                     'permission' => 'settings.view',
@@ -316,6 +323,10 @@ return [
         ],
         'activity' => [
             'view' => ['super-admin', 'admin'],
+        ],
+        'records' => [
+            'view' => ['super-admin', 'admin'],
+            'restore' => ['super-admin'],
         ],
     ],
 

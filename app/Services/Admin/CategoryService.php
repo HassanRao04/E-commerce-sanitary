@@ -2,6 +2,7 @@
 
 namespace App\Services\Admin;
 
+use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Repositories\Contracts\CategoryRepositoryInterface;
 use App\Services\ActivityLogService;
@@ -88,9 +89,52 @@ class CategoryService
     public function delete(Category $category): void
     {
         DB::transaction(function () use ($category) {
-            $this->activityLog->log('category.deleted', $category, $category->toArray());
+            $cascadeOperationId = (string) Str::uuid();
+
+            foreach ($category->descendants()->defaultOrder()->get() as $descendant) {
+                $this->activityLog->log(
+                    'category.deleted',
+                    $descendant,
+                    $descendant->toArray(),
+                    [
+                        'cascade_operation_id' => $cascadeOperationId,
+                        'cascade_root_category_id' => $category->id,
+                    ],
+                );
+            }
+
+            $this->activityLog->log(
+                'category.deleted',
+                $category,
+                $category->toArray(),
+                [
+                    'cascade_operation_id' => $cascadeOperationId,
+                    'cascade_root_category_id' => $category->id,
+                    'cascade_role' => 'root',
+                ],
+            );
+
             $this->deleteStoredImages($category);
             $category->delete();
+        });
+    }
+
+    public function restore(Category $category): Category
+    {
+        return DB::transaction(function () use ($category) {
+            $snapshot = ActivityLog::query()
+                ->where('model_type', Category::class)
+                ->where('model_id', $category->id)
+                ->where('action', 'category.deleted')
+                ->latest('created_at')
+                ->value('old_values') ?? $category->toArray();
+
+            $category->restore();
+
+            $restored = $category->fresh();
+            $this->activityLog->log('category.restored', $restored, $snapshot, $restored->toArray());
+
+            return $restored;
         });
     }
 

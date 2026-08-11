@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\CourierProviderController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DeletedRecordController;
 use App\Http\Controllers\Admin\HomepageController;
 use App\Http\Controllers\Admin\InquiryController;
 use App\Http\Controllers\Admin\InfluencerPerformanceController;
@@ -287,6 +288,13 @@ Route::middleware(['auth', 'staff'])->prefix('admin')->name('admin.')->group(fun
     // ── System ───────────────────────────────────────────────────────────
     Route::middleware('can:activity.view')->group(function (): void {
         Route::get('activity', [ActivityLogController::class, 'index'])->name('activity.index');
+    });
+
+    Route::middleware('permission:records.view')->group(function (): void {
+        Route::get('deleted-records', [DeletedRecordController::class, 'index'])->name('deleted-records.index');
+        Route::post('deleted-records/{type}/{id}/restore', [DeletedRecordController::class, 'restore'])
+            ->middleware('permission:records.restore')
+            ->name('deleted-records.restore');
     });
 
     Route::middleware('permission:homepage.view')->group(function (): void {

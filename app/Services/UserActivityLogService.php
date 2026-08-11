@@ -47,6 +47,36 @@ class UserActivityLogService
         );
     }
 
+    public function logRestored(User $user, User $actor, array $snapshot): ActivityLog
+    {
+        return $this->activityLog->log(
+            'user.restored',
+            $user,
+            $snapshot,
+            $this->snapshot($user),
+            sprintf('Restored staff user %s', $user->full_name),
+            $actor->id,
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function snapshot(User $user): array
+    {
+        $user->loadMissing('roles');
+
+        return [
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'status' => $user->status?->value,
+            'role' => $user->roles->pluck('name')->first(),
+            'profile_photo' => $user->profile_photo,
+        ];
+    }
+
     public function logLogin(User $user): ActivityLog
     {
         return $this->activityLog->log(

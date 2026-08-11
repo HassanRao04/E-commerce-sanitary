@@ -2,6 +2,7 @@
 
 namespace App\Services\Admin;
 
+use App\Models\ActivityLog;
 use App\Models\Product;
 use App\Models\ProductAttributeValue;
 use App\Repositories\Contracts\ProductRepositoryInterface;
@@ -88,6 +89,25 @@ class ProductService
 
             $this->activityLog->log('product.deleted', $product, $product->toArray());
             $this->products->delete($product);
+        });
+    }
+
+    public function restore(Product $product): Product
+    {
+        return DB::transaction(function () use ($product) {
+            $snapshot = ActivityLog::query()
+                ->where('model_type', Product::class)
+                ->where('model_id', $product->id)
+                ->where('action', 'product.deleted')
+                ->latest('created_at')
+                ->value('old_values') ?? $product->toArray();
+
+            $product->restore();
+
+            $restored = $product->fresh();
+            $this->activityLog->log('product.restored', $restored, $snapshot, $restored->toArray());
+
+            return $restored;
         });
     }
 

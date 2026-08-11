@@ -23,11 +23,15 @@
 
                     <div>
                         <label class="block text-sm font-medium text-ink-700 mb-2">Rating</label>
-                        <div class="flex gap-2">
-                            @for ($star = 5; $star >= 1; $star--)
+                        <div class="review-rating-stars flex gap-2" role="radiogroup" aria-label="Rating">
+                            @for ($star = 1; $star <= 5; $star++)
                                 <label class="cursor-pointer">
-                                    <input type="radio" name="rating" value="{{ $star }}" class="sr-only" @checked(old('rating') == $star) required>
-                                    <span class="inline-flex text-2xl text-amber-400 hover:scale-110 transition">{{ $star <= (int) old('rating', 5) ? '★' : '☆' }}</span>
+                                    <input type="radio" name="rating" value="{{ $star }}" class="sr-only" @checked((int) old('rating') === $star) required>
+                                    <span @class([
+                                        'inline-flex text-2xl transition hover:scale-110',
+                                        'text-amber-400' => $star <= (int) old('rating', 0),
+                                        'text-ink-300' => $star > (int) old('rating', 0),
+                                    ])>{{ $star <= (int) old('rating', 0) ? '★' : '☆' }}</span>
                                 </label>
                             @endfor
                         </div>
@@ -66,18 +70,60 @@
             </div>
         </div>
     </div>
-@endsection
 
-@push('scripts')
     <script>
-        document.querySelectorAll('input[name="rating"]').forEach(function (input) {
-            input.addEventListener('change', function () {
-                const value = parseInt(this.value, 10);
-                document.querySelectorAll('input[name="rating"]').forEach(function (starInput, index) {
-                    const starValue = 5 - index;
-                    starInput.nextElementSibling.textContent = starValue <= value ? '★' : '☆';
+        (function () {
+            const container = document.querySelector('.review-rating-stars');
+            if (!container) {
+                return;
+            }
+
+            const inputs = Array.from(container.querySelectorAll('input[name="rating"]'));
+
+            function selectedValue() {
+                const checked = inputs.find(function (input) {
+                    return input.checked;
+                });
+
+                return checked ? parseInt(checked.value, 10) : 0;
+            }
+
+            function renderStars(activeValue) {
+                inputs.forEach(function (input) {
+                    const value = parseInt(input.value, 10);
+                    const span = input.nextElementSibling;
+                    const filled = value <= activeValue;
+
+                    span.textContent = filled ? '★' : '☆';
+                    span.classList.toggle('text-amber-400', filled);
+                    span.classList.toggle('text-ink-300', !filled);
+                });
+            }
+
+            inputs.forEach(function (input) {
+                const label = input.closest('label');
+                if (!label) {
+                    return;
+                }
+
+                label.addEventListener('click', function () {
+                    renderStars(parseInt(input.value, 10));
+                });
+
+                input.addEventListener('change', function () {
+                    renderStars(parseInt(this.value, 10));
+                });
+
+                label.addEventListener('mouseenter', function () {
+                    renderStars(parseInt(input.value, 10));
                 });
             });
-        });
+
+            container.addEventListener('mouseleave', function () {
+                renderStars(selectedValue());
+            });
+
+            renderStars(selectedValue());
+        })();
     </script>
-@endpush
+@endsection

@@ -89,7 +89,18 @@ class ProductVariationFlowTest extends TestCase
 
         $color = Attribute::query()->where('slug', 'color')->firstOrFail();
         $size = Attribute::query()->where('slug', 'size')->firstOrFail();
-        $black = AttributeValue::query()->where('attribute_id', $color->id)->where('slug', 'black')->firstOrFail();
+        // AttributeSeeder ships "Matte Black"; this fixture needs a plain "Black".
+        $black = AttributeValue::query()->firstOrCreate(
+            [
+                'attribute_id' => $color->id,
+                'slug' => 'black',
+            ],
+            [
+                'value' => 'Black',
+                'color_hex' => '#000000',
+                'sort_order' => 99,
+            ],
+        );
         $small = AttributeValue::query()->where('attribute_id', $size->id)->where('slug', 'small')->firstOrFail();
 
         $variant = ProductVariant::factory()->create([

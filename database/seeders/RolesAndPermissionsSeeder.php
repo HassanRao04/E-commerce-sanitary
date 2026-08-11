@@ -17,6 +17,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'dashboard.view',
             'users.view', 'users.create', 'users.update', 'users.delete',
             'activity.view',
+            'records.view', 'records.restore',
             'roles.view', 'roles.manage',
             'products.view', 'products.create', 'products.update', 'products.delete',
             'categories.view', 'categories.manage',
@@ -45,6 +46,7 @@ class RolesAndPermissionsSeeder extends Seeder
 
         $adminPermissions = array_values(array_diff($permissions, [
             'users.delete',
+            'records.restore',
         ]));
 
         $roles = [

@@ -2,6 +2,7 @@
 
 namespace App\Services\Admin;
 
+use App\Models\ActivityLog;
 use App\Models\Brand;
 use App\Repositories\Contracts\BrandRepositoryInterface;
 use App\Services\ActivityLogService;
@@ -52,6 +53,25 @@ class BrandService
         DB::transaction(function () use ($brand) {
             $this->activityLog->log('brand.deleted', $brand, $brand->toArray());
             $this->brands->delete($brand);
+        });
+    }
+
+    public function restore(Brand $brand): Brand
+    {
+        return DB::transaction(function () use ($brand) {
+            $snapshot = ActivityLog::query()
+                ->where('model_type', Brand::class)
+                ->where('model_id', $brand->id)
+                ->where('action', 'brand.deleted')
+                ->latest('created_at')
+                ->value('old_values') ?? $brand->toArray();
+
+            $brand->restore();
+
+            $restored = $brand->fresh();
+            $this->activityLog->log('brand.restored', $restored, $snapshot, $restored->toArray());
+
+            return $restored;
         });
     }
 }

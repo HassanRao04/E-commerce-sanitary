@@ -14,7 +14,7 @@ require __DIR__.'/storefront.php';
 Route::get('/dashboard', function () {
     $user = auth()->user();
 
-    if ($user?->isStaff()) {
+    if ($user?->canAccessAdmin()) {
         return redirect()->route('admin.dashboard');
     }
 

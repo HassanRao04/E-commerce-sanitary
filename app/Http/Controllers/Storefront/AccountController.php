@@ -31,7 +31,7 @@ class AccountController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->isStaff()) {
+        if ($user->canAccessAdmin()) {
             return redirect()->route('admin.dashboard');
         }
 
@@ -47,7 +47,7 @@ class AccountController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->isStaff()) {
+        if ($user->canAccessAdmin()) {
             return redirect()->route('admin.dashboard');
         }
 
@@ -78,7 +78,7 @@ class AccountController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->isStaff()) {
+        if ($user->canAccessAdmin()) {
             return redirect()->route('admin.dashboard');
         }
 
@@ -105,7 +105,7 @@ class AccountController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->isStaff()) {
+        if ($user->canAccessAdmin()) {
             return redirect()->route('admin.dashboard');
         }
 
@@ -139,7 +139,7 @@ class AccountController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->isStaff()) {
+        if ($user->canAccessAdmin()) {
             return redirect()->route('admin.dashboard');
         }
 
@@ -170,7 +170,7 @@ class AccountController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->isStaff()) {
+        if ($user->canAccessAdmin()) {
             return redirect()->route('admin.dashboard');
         }
 
@@ -191,7 +191,7 @@ class AccountController extends Controller
     {
         $user = auth()->user();
 
-        if ($user->isStaff()) {
+        if ($user->canAccessAdmin()) {
             return redirect()->route('admin.dashboard');
         }
 

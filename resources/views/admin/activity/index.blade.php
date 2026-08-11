@@ -70,7 +70,7 @@
                         <td class="px-4 py-3 text-gray-600">{{ $log->description ?? '—' }}</td>
                         <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $log->ip_address ?? '—' }}</td>
                         <td class="px-4 py-3 text-gray-600">{{ $log->browser ?? '—' }}</td>
-                        <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ $log->created_at?->format('M j, Y g:i A') }}</td>
+                        <td class="px-4 py-3 text-gray-600 whitespace-nowrap"><x-admin.datetime :at="$log->created_at" /></td>
                     </tr>
                 @empty
                     <tr>

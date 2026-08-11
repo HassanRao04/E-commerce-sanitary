@@ -55,7 +55,9 @@
 
         <div class="border-t border-slate-800 p-3 text-xs text-slate-500">
             <p class="truncate">{{ auth()->user()->name }}</p>
-            <p class="truncate text-slate-600">{{ auth()->user()->getRoleNames()->first() }}</p>
+            <p class="truncate text-slate-400">
+                {{ \App\Enums\StaffRole::tryFromName(auth()->user()->getRoleNames()->first())?->label() ?? 'No role' }}
+            </p>
         </div>
     </aside>
 
@@ -82,7 +84,7 @@
                         @hasSection('breadcrumb')
                             @yield('breadcrumb')
                         @else
-                            <p class="text-xs text-gray-500">Admin</p>
+                            <p class="text-xs text-gray-500">ERP</p>
                         @endif
                         <h1 class="truncate text-base font-semibold text-gray-900 lg:text-lg">@yield('title', 'Dashboard')</h1>
                     </div>

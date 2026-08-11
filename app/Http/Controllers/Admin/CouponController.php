@@ -81,10 +81,9 @@ class CouponController extends Controller
     {
         $this->authorize('delete', $coupon);
 
-        $code = $coupon->code;
+        $snapshot = $coupon->toArray();
+        $this->activityLog->log('coupon.deleted', $coupon, $snapshot);
         $coupon->delete();
-
-        $this->activityLog->log('coupon.deleted', null, [], ['code' => $code]);
 
         return redirect()->route('admin.coupons.index')->with('success', 'Coupon deleted successfully.');
     }

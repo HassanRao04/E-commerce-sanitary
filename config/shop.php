@@ -10,4 +10,5 @@ return [
     'low_stock_threshold' => (int) env('SHOP_LOW_STOCK_THRESHOLD', 5),
     'admin_email' => env('SHOP_ADMIN_EMAIL', 'admin@sanitarystore.pk'),
     'estimated_delivery_days' => (int) env('SHOP_ESTIMATED_DELIVERY_DAYS', 5),
+    'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'Asia/Karachi'),
 ];
