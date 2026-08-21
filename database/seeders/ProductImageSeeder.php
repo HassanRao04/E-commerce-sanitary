@@ -32,8 +32,8 @@ class ProductImageSeeder extends Seeder
                 continue;
             }
 
-            // Remove broken local image rows so placeholders can replace them.
             if (! str_starts_with((string) $image->image_path, 'http')) {
+                $this->deleteLocalFile($image->image_path);
                 $image->delete();
             } else {
                 $validCount++;
@@ -50,25 +50,29 @@ class ProductImageSeeder extends Seeder
             return;
         }
 
-        $sortOrder = (int) $product->images()->max('sort_order');
         $hasPrimary = $product->images()->where('is_primary', true)->exists();
 
-        for ($i = $validCount; $i < $targetCount; $i++) {
-            $sortOrder++;
-            $path = $this->storePlaceholder($product, $sortOrder);
+        for ($slot = $validCount + 1; $slot <= $targetCount; $slot++) {
+            $path = $this->placeholderPath($product, $slot);
+            $this->ensurePlaceholderFile($product, $slot, $path);
 
             $product->images()->create([
                 'product_variant_id' => null,
                 'image_path' => $path,
-                'alt_text' => $product->name.($sortOrder === 1 ? '' : " — gallery {$sortOrder}"),
-                'is_primary' => ! $hasPrimary && $i === $validCount,
-                'sort_order' => $sortOrder,
+                'alt_text' => $product->name.($slot === 1 ? '' : " — gallery {$slot}"),
+                'is_primary' => ! $hasPrimary && $slot === ($validCount + 1),
+                'sort_order' => $slot,
             ]);
 
             $hasPrimary = true;
         }
 
         $this->ensurePrimary($product);
+    }
+
+    private function placeholderPath(Product $product, int $slot): string
+    {
+        return "products/{$product->id}/gallery-{$slot}.svg";
     }
 
     private function imageExists(ProductImage $image): bool
@@ -96,11 +100,11 @@ class ProductImageSeeder extends Seeder
         $first?->update(['is_primary' => true]);
     }
 
-    private function storePlaceholder(Product $product, int $index): string
+    private function ensurePlaceholderFile(Product $product, int $slot, string $path): void
     {
-        $directory = "products/{$product->id}";
-        $filename = 'gallery-'.$index.'-'.Str::lower(Str::random(8)).'.svg';
-        $path = "{$directory}/{$filename}";
+        if (Storage::disk('public')->exists($path)) {
+            return;
+        }
 
         $palette = [
             ['#e8eef5', '#1f3a5f'],
@@ -112,7 +116,7 @@ class ProductImageSeeder extends Seeder
 
         [$background, $accent] = $palette[$product->id % count($palette)];
         $label = e(Str::limit($product->name, 36, '…'));
-        $subtitle = e('Sanitary placeholder '.$index);
+        $subtitle = e('Sanitary placeholder '.$slot);
 
         $svg = <<<SVG
 <svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
@@ -127,7 +131,14 @@ class ProductImageSeeder extends Seeder
 SVG;
 
         Storage::disk('public')->put($path, $svg);
+    }
 
-        return $path;
+    private function deleteLocalFile(?string $path): void
+    {
+        if (blank($path) || str_starts_with((string) $path, 'http')) {
+            return;
+        }
+
+        Storage::disk('public')->delete($path);
     }
 }

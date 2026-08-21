@@ -75,6 +75,7 @@ use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -95,6 +96,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        if ($rootUrl = config('app.url')) {
+            URL::forceRootUrl(rtrim($rootUrl, '/'));
+        }
+
         Gate::policy(ActivityLog::class, ActivityLogPolicy::class);
         Gate::policy(Product::class, ProductPolicy::class);
         Gate::policy(Category::class, CategoryPolicy::class);

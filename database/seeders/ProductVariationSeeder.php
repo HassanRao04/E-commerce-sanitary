@@ -186,16 +186,9 @@ class ProductVariationSeeder extends Seeder
             $label = e(Str::limit($variant->variant_name ?: $product->name, 40, '…'));
 
             $sortOrder++;
-            $path = "products/{$product->id}/variants/".Str::lower(Str::random(28)).'.svg';
+            $path = "products/{$product->id}/variants/{$variant->id}.svg";
 
-            Storage::disk('public')->put($path, <<<SVG
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
-  <rect width="800" height="800" fill="#F8FAFC"/>
-  <rect x="90" y="90" width="620" height="620" rx="28" fill="#FFFFFF" stroke="{$hex}" stroke-width="4"/>
-  <circle cx="400" cy="340" r="90" fill="{$hex}"/>
-  <text x="400" y="520" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="28" fill="#334155">{$label}</text>
-</svg>
-SVG);
+            $this->ensureVariantPlaceholderFile($path, $hex, $label);
 
             ProductImage::query()->create([
                 'product_id' => $product->id,
@@ -206,5 +199,21 @@ SVG);
                 'sort_order' => $sortOrder,
             ]);
         }
+    }
+
+    private function ensureVariantPlaceholderFile(string $path, string $hex, string $label): void
+    {
+        if (Storage::disk('public')->exists($path)) {
+            return;
+        }
+
+        Storage::disk('public')->put($path, <<<SVG
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  <rect width="800" height="800" fill="#F8FAFC"/>
+  <rect x="90" y="90" width="620" height="620" rx="28" fill="#FFFFFF" stroke="{$hex}" stroke-width="4"/>
+  <circle cx="400" cy="340" r="90" fill="{$hex}"/>
+  <text x="400" y="520" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="28" fill="#334155">{$label}</text>
+</svg>
+SVG);
     }
 }

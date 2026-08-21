@@ -123,15 +123,23 @@ class ProductVariantSelectorTest extends TestCase
         $this->assertFalse($whiteLarge['purchasable']);
     }
 
-    public function test_gallery_config_uses_variant_images_with_product_fallback(): void
+    public function test_gallery_config_merges_variant_images_with_shared_product_gallery(): void
     {
         $product = Product::factory()->create(['product_type' => 'variable']);
 
-        $product->images()->create([
-            'image_path' => 'products/shared.jpg',
-            'alt_text' => 'Shared image',
-            'is_primary' => true,
-            'sort_order' => 1,
+        $product->images()->createMany([
+            [
+                'image_path' => 'products/shared-a.jpg',
+                'alt_text' => 'Shared A',
+                'is_primary' => true,
+                'sort_order' => 1,
+            ],
+            [
+                'image_path' => 'products/shared-b.jpg',
+                'alt_text' => 'Shared B',
+                'is_primary' => false,
+                'sort_order' => 2,
+            ],
         ]);
 
         $variant = ProductVariant::factory()->create([
@@ -143,6 +151,8 @@ class ProductVariantSelectorTest extends TestCase
             'is_default' => true,
             'is_active' => true,
         ]);
+
+        $product->update(['default_variant_id' => $variant->id]);
 
         $variant->images()->create([
             'product_id' => $product->id,
@@ -158,9 +168,89 @@ class ProductVariantSelectorTest extends TestCase
         $selector = ProductVariantSelector::forProduct($product);
 
         $variantRow = collect($selector['variants'])->firstWhere('id', $variant->id);
+        $mergedGallery = $selector['gallery']['imagesByVariant'][$variant->id];
 
-        $this->assertStringContainsString('variant-black.jpg', $selector['gallery']['imagesByVariant'][$variant->id][0]['url']);
-        $this->assertSame($selector['gallery']['imagesByVariant'][$variant->id], $variantRow['images']);
-        $this->assertStringContainsString('shared.jpg', $selector['gallery']['fallbackImages'][0]['url']);
+        $this->assertCount(3, $mergedGallery);
+        $this->assertStringContainsString('variant-black.jpg', $mergedGallery[0]['url']);
+        $this->assertStringContainsString('shared-a.jpg', $mergedGallery[1]['url']);
+        $this->assertStringContainsString('shared-b.jpg', $mergedGallery[2]['url']);
+        $this->assertSame($mergedGallery, $variantRow['images']);
+        $this->assertSame($mergedGallery, $selector['gallery']['initialImages']);
+        $this->assertCount(2, $selector['gallery']['fallbackImages']);
+        $this->assertStringContainsString('shared-a.jpg', $selector['gallery']['fallbackImages'][0]['url']);
+    }
+
+    public function test_gallery_config_uses_shared_images_when_variant_has_no_images(): void
+    {
+        $product = Product::factory()->create(['product_type' => 'variable']);
+
+        $product->images()->create([
+            'image_path' => 'products/shared-only.jpg',
+            'alt_text' => 'Shared image',
+            'is_primary' => true,
+            'sort_order' => 1,
+        ]);
+
+        $variant = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'sku' => 'VAR-NO-IMG',
+            'variant_name' => 'Plain',
+            'price' => 5000,
+            'stock_quantity' => 3,
+            'is_default' => true,
+            'is_active' => true,
+        ]);
+
+        $product->update(['default_variant_id' => $variant->id]);
+
+        $product->unsetRelation('variants');
+        $product->load(['images', 'variants.images']);
+
+        $selector = ProductVariantSelector::forProduct($product);
+        $gallery = $selector['gallery']['imagesByVariant'][$variant->id];
+
+        $this->assertCount(1, $gallery);
+        $this->assertStringContainsString('shared-only.jpg', $gallery[0]['url']);
+    }
+
+    public function test_gallery_config_deduplicates_identical_variant_and_shared_urls(): void
+    {
+        $product = Product::factory()->create(['product_type' => 'variable']);
+
+        $product->images()->create([
+            'image_path' => 'products/same.jpg',
+            'alt_text' => 'Shared image',
+            'is_primary' => true,
+            'sort_order' => 1,
+        ]);
+
+        $variant = ProductVariant::factory()->create([
+            'product_id' => $product->id,
+            'sku' => 'VAR-DEDUPE',
+            'variant_name' => 'Black',
+            'price' => 5000,
+            'stock_quantity' => 3,
+            'is_default' => true,
+            'is_active' => true,
+        ]);
+
+        $product->update(['default_variant_id' => $variant->id]);
+
+        $variant->images()->create([
+            'product_id' => $product->id,
+            'image_path' => 'products/same.jpg',
+            'alt_text' => 'Duplicate variant image',
+            'is_primary' => true,
+            'sort_order' => 1,
+        ]);
+
+        $product->unsetRelation('variants');
+        $product->load(['images', 'variants.images']);
+
+        $selector = ProductVariantSelector::forProduct($product);
+        $gallery = $selector['gallery']['imagesByVariant'][$variant->id];
+
+        $this->assertCount(1, $gallery);
+        $this->assertStringContainsString('same.jpg', $gallery[0]['url']);
     }
 }

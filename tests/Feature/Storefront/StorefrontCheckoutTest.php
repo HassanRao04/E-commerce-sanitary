@@ -147,6 +147,7 @@ class StorefrontCheckoutTest extends TestCase
 
         $order = Order::query()->find(session('shop.last_order_id'));
         $this->assertNotNull($order);
+        $this->assertSame('pending', $order->status);
         $response->assertRedirect(route('shop.checkout.success', $order));
 
         $this->get(route('shop.checkout.success', $order))
