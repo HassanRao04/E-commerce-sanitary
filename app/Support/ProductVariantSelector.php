@@ -145,11 +145,33 @@ class ProductVariantSelector
             $product->name.' — '.$variant->variant_name,
         );
 
-        if ($variantImages !== []) {
-            return $variantImages;
+        if ($variantImages === []) {
+            return $fallbackImages;
         }
 
-        return $fallbackImages;
+        return self::mergeGalleryImages($variantImages, $fallbackImages);
+    }
+
+    /**
+     * @param  list<array{url: string, alt: string}>  $primary
+     * @param  list<array{url: string, alt: string}>  $secondary
+     * @return list<array{url: string, alt: string}>
+     */
+    private static function mergeGalleryImages(array $primary, array $secondary): array
+    {
+        $merged = [];
+        $seen = [];
+
+        foreach (array_merge($primary, $secondary) as $image) {
+            if (isset($seen[$image['url']])) {
+                continue;
+            }
+
+            $seen[$image['url']] = true;
+            $merged[] = $image;
+        }
+
+        return $merged;
     }
 
     /**

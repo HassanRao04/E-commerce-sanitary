@@ -11,16 +11,21 @@ use Illuminate\View\View;
 
 class OrderTrackingController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
         if ($request->filled('tracking_token')) {
+            $token = $request->string('tracking_token')->toString();
             $order = Order::query()
-                ->where('tracking_token', $request->string('tracking_token')->toString())
+                ->where('tracking_token', $token)
                 ->first();
 
             if ($order) {
                 return $this->renderOrder($order);
             }
+
+            return redirect()
+                ->route('shop.orders.track', ['tracking_token' => $token])
+                ->with('error', 'We could not find an order matching that tracking reference. Please check the link and try again.');
         }
 
         return view('storefront.orders.track');

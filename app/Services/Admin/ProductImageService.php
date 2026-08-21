@@ -6,11 +6,14 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ProductImageService
 {
+    public function __construct(
+        private readonly ProductImageProcessor $processor,
+    ) {}
+
     public function uploadForVariant(Product $product, ProductVariant $variant, UploadedFile $file): ProductImage
     {
         foreach ($variant->images as $image) {
@@ -18,7 +21,11 @@ class ProductImageService
         }
 
         $sortOrder = ((int) $product->images()->max('sort_order')) + 1;
-        $path = $file->store("products/{$product->id}/variants", 'public');
+        $path = $this->processor->storeOptimized(
+            $file,
+            "products/{$product->id}/variants",
+            "{$variant->id}.webp",
+        );
 
         return $product->images()->create([
             'product_variant_id' => $variant->id,
@@ -39,7 +46,11 @@ class ProductImageService
             }
 
             $sortOrder++;
-            $path = $file->store("products/{$product->id}", 'public');
+            $path = $this->processor->storeOptimized(
+                $file,
+                "products/{$product->id}",
+                Str::uuid()->toString().'.webp',
+            );
 
             $product->images()->create([
                 'product_variant_id' => $variantId,
@@ -77,9 +88,7 @@ class ProductImageService
 
     public function delete(ProductImage $image): void
     {
-        if ($image->image_path && ! str_starts_with($image->image_path, 'http')) {
-            Storage::disk('public')->delete($image->image_path);
-        }
+        $this->processor->deletePublicFile($image->image_path);
 
         $wasPrimary = $image->is_primary;
         $productId = $image->product_id;

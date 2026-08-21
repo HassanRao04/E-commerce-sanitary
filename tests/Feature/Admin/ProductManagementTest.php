@@ -25,6 +25,15 @@ class ProductManagementTest extends TestCase
         $this->seed();
         $this->admin = User::where('email', config('shop.admin_email'))->first();
         Storage::fake('public');
+
+        if (! extension_loaded('gd') || ! function_exists('imagewebp')) {
+            $this->markTestSkipped('GD with WebP support is required for product image tests.');
+        }
+    }
+
+    private function fakeProductImage(string $name, int $width = 2000, int $height = 1500): UploadedFile
+    {
+        return UploadedFile::fake()->image($name, $width, $height);
     }
 
     public function test_admin_can_create_simple_product_with_images_and_attributes(): void
@@ -49,8 +58,8 @@ class ProductManagementTest extends TestCase
                 'attribute_value_id' => $attribute->values()->first()->id,
             ]],
             'images' => [
-                UploadedFile::fake()->create('basin.jpg', 100, 'image/jpeg'),
-                UploadedFile::fake()->create('basin-2.png', 100, 'image/png'),
+                $this->fakeProductImage('basin.jpg'),
+                $this->fakeProductImage('basin-2.png'),
             ],
         ]);
 
@@ -61,6 +70,16 @@ class ProductManagementTest extends TestCase
         $this->assertEquals(2, $product->images()->count());
         $this->assertEquals(1, $product->attributeValues()->count());
         $this->assertEquals(15, $product->defaultVariant->stock_quantity);
+
+        foreach ($product->images as $image) {
+            $this->assertStringEndsWith('.webp', $image->image_path);
+            Storage::disk('public')->assertExists($image->image_path);
+
+            $storedPath = Storage::disk('public')->path($image->image_path);
+            $dimensions = getimagesize($storedPath);
+            $this->assertIsArray($dimensions);
+            $this->assertLessThanOrEqual(1600, max($dimensions[0], $dimensions[1]));
+        }
     }
 
     public function test_admin_can_create_variable_product_with_variants(): void
@@ -237,7 +256,7 @@ class ProductManagementTest extends TestCase
                         'attribute_slug' => 'color',
                         'value' => 'Black',
                     ]],
-                    'image' => UploadedFile::fake()->create('variant.jpg', 100, 'image/jpeg'),
+                    'image' => $this->fakeProductImage('variant.jpg'),
                 ],
             ],
         ]);
@@ -245,6 +264,72 @@ class ProductManagementTest extends TestCase
         $response->assertRedirect(route('admin.products.edit', $product));
         $variant->refresh();
         $this->assertEquals(1, $variant->images()->count());
+
+        $variantImage = $variant->images()->first();
+        $this->assertStringEndsWith("variants/{$variant->id}.webp", $variantImage->image_path);
+        Storage::disk('public')->assertExists($variantImage->image_path);
+    }
+
+    public function test_replacing_variant_image_does_not_leave_duplicate_files(): void
+    {
+        $product = Product::where('product_type', 'variable')->first()
+            ?? Product::factory()->create(['product_type' => 'variable']);
+
+        $variant = $product->variants()->first();
+        if (! $variant) {
+            $variant = $product->variants()->create([
+                'sku' => 'TEST-V2',
+                'variant_name' => 'Test Replace',
+                'price' => 1000,
+                'stock_quantity' => 5,
+                'is_default' => true,
+                'is_active' => true,
+            ]);
+            $product->update(['default_variant_id' => $variant->id]);
+        }
+
+        $payload = [
+            'name' => $product->name,
+            'slug' => $product->slug,
+            'base_sku' => $product->base_sku,
+            'status' => $product->status->value,
+            'product_type' => 'variable',
+            'variants' => [[
+                'id' => $variant->id,
+                'sku' => $variant->sku,
+                'variant_name' => $variant->variant_name,
+                'price' => $variant->price,
+                'stock_quantity' => $variant->stock_quantity,
+                'is_default' => 1,
+                'is_active' => 1,
+                'attribute_values' => [[
+                    'attribute_name' => 'Color',
+                    'attribute_slug' => 'color',
+                    'value' => 'Black',
+                ]],
+            ]],
+        ];
+
+        $this->actingAs($this->admin)->put(route('admin.products.update', $product), array_merge($payload, [
+            'variants' => [[
+                ...$payload['variants'][0],
+                'image' => $this->fakeProductImage('variant-first.jpg'),
+            ]],
+        ]))->assertRedirect();
+
+        $firstPath = $variant->fresh()->images()->first()->image_path;
+
+        $this->actingAs($this->admin)->put(route('admin.products.update', $product), array_merge($payload, [
+            'variants' => [[
+                ...$payload['variants'][0],
+                'image' => $this->fakeProductImage('variant-second.jpg', 1200, 900),
+            ]],
+        ]))->assertRedirect();
+
+        $secondPath = $variant->fresh()->images()->first()->image_path;
+
+        $this->assertSame($firstPath, $secondPath);
+        $this->assertCount(1, Storage::disk('public')->allFiles("products/{$product->id}/variants"));
     }
 
     public function test_admin_can_update_product_and_remove_image(): void

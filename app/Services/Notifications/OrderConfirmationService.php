@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\SiteSetting;
 use App\Services\Admin\InvoiceService;
 use App\Mail\OrderConfirmationMail;
+use App\Support\OrderTrackingUrl;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 
@@ -58,7 +59,7 @@ class OrderConfirmationService
                 'quantity' => (int) $item->quantity,
             ])->all(),
             'shippingAddress' => $this->formatShippingAddress($order),
-            'trackOrderUrl' => $this->trackOrderUrl($order),
+            'trackOrderUrl' => OrderTrackingUrl::forOrder($order),
             'contactEmail' => $settings->inquiryNotificationEmail(),
             'contactPhone' => $settings->contact_phone,
             'storeAddress' => $settings->address,
@@ -102,17 +103,6 @@ class OrderConfirmationService
             $address->postal_code,
             $address->country,
         ])->filter()->implode(', ');
-    }
-
-    private function trackOrderUrl(Order $order): string
-    {
-        if (filled($order->tracking_token)) {
-            return route('shop.orders.track', [
-                'tracking_token' => $order->tracking_token,
-            ], absolute: true);
-        }
-
-        return route('shop.orders.track', absolute: true);
     }
 
     private function formatLabel(?string $value): string

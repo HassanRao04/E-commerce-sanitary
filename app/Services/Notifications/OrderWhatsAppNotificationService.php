@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\SiteSetting;
 use App\Services\ActivityLogService;
 use App\Services\Admin\InvoiceService;
+use App\Support\OrderTrackingUrl;
 use Illuminate\Support\Facades\Log;
 
 class OrderWhatsAppNotificationService
@@ -143,7 +144,7 @@ class OrderWhatsAppNotificationService
             'Payment Method: '.$this->formatLabel($order->payment_method?->value),
             'Order Status: '.$order->status_label,
             '',
-            'Track Order: '.$this->trackOrderUrl($order),
+            'Track Order: '.OrderTrackingUrl::forOrder($order),
             '',
             'Support: '.$supportNumber,
         ]));
@@ -167,17 +168,6 @@ class OrderWhatsAppNotificationService
         }
 
         return $preference->sms_orders === false;
-    }
-
-    private function trackOrderUrl(Order $order): string
-    {
-        if (filled($order->tracking_token)) {
-            return route('shop.orders.track', [
-                'tracking_token' => $order->tracking_token,
-            ], absolute: true);
-        }
-
-        return route('shop.orders.track', absolute: true);
     }
 
     private function formatLabel(?string $value): string
